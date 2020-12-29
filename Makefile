@@ -28,10 +28,10 @@ CA65=  $(CC65_PREFIX)ca65 --cpu 4510
 LD65=  $(CC65_PREFIX)ld65 -t none
 CL65=  $(CC65_PREFIX)cl65 --config src/tests/vicii.cfg
 
-ifeq (,$(wildcard oss-toolchain/Makefile))
-$(shell git submodule update --init)
-endif
-include oss-toolchain/Makefile
+OSS_TOOLCHAIN=oss-toolchain
+$(OSS_TOOLCHAIN)/Makefile:
+	git submodule update --init $(OSS_TOOLCHAIN) && ( cd $(OSS_TOOLCHAIN) && $(MAKE) init )
+include $(OSS_TOOLCHAIN)/Makefile
 
 CBMCONVERT=	cbmconvert/cbmconvert
 
@@ -860,14 +860,14 @@ else
 toolchain-dependencies: | $(VIVADO_DIR)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Installing dependencies )
-	( cd oss-toolchain && $(MAKE) install_dependencies ) \
+	( cd $(OSS_TOOLCHAIN) && $(MAKE) install_dependencies ) \
 	&& apt install autoconf gperf flex bison default-jre libpng-dev imagemagick python2
 
 toolchain:
-	( cd oss-toolchain && $(MAKE) init && $(MAKE) )
+	( cd $(OSS_TOOLCHAIN) && $(MAKE) init && $(MAKE) all )
 
 clean-toolchain:
-	( cd oss-toolchain && $(MAKE) clean )
+	( cd $(OSS_TOOLCHAIN) && $(MAKE) clean )
 
 XILINX_BOARDS =
 
