@@ -83,34 +83,30 @@ all:	$(SDCARD_DIR)/MEGA65.D81 $(BINDIR)/mega65r1.mcs $(BINDIR)/nexys4.mcs $(BIND
 $(SDCARD_DIR)/FREEZER.M65:
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	git submodule init
-	git submodule update
-	( cd src/mega65-freezemenu && make FREEZER.M65 USE_LOCAL_CC65=1 CC65=$(CC65_PREFIX)cc65 CL65=$(CC65_PREFIX)cl65 )
-	cp src/mega65-freezemenu/FREEZER.M65 $(SDCARD_DIR)
+	git submodule update --init $(SRCDIR)/mega65-freezemenu
+	( cd $(SRCDIR)/mega65-freezemenu && make FREEZER.M65 USE_LOCAL_CC65=1 CC65=$(CC65_PREFIX)cc65 CL65=$(CC65_PREFIX)cl65 )
+	cp $(SRCDIR)/mega65-freezemenu/FREEZER.M65 $(SDCARD_DIR)
 
 $(CBMCONVERT):
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	git submodule init
-	git submodule update
+	git submodule update --init cbmconvert
 	( cd cbmconvert && make -f Makefile.unix )
 
 $(CC65):
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	git submodule init
-	git submodule update
 ifdef USE_LOCAL_CC65
 	echo "NOTE: Using local installed CC65 because USE_LOCAL_CC65=1."
 else
+	git submodule update --init cc65
 	( cd cc65 && make -j 8 )
 endif
 
 $(OPHIS):
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	git submodule init
-	git submodule update
+	git submodule update --init Ophis
 
 # Not quite yet with Vivado...
 # $(BINDIR)/nexys4.mcs $(BINDIR)/nexys4ddr.mcs $(BINDIR)/lcd4ddr.mcs $(BINDIR)/touch_test.mcs
@@ -533,8 +529,7 @@ $(UTILDIR)/mega65_config.prg:       $(UTILDIR)/mega65_config.o $(CC65)
 $(UTILDIR)/megaflash.prg:       $(UTILDIR)/megaflash.c $(CC65)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	git submodule init
-	git submodule update
+	git submodule update --init $(SRCDIR)/mega65-libc
 	$(CL65) -I $(SRCDIR)/mega65-libc/cc65/include -O -o $*.prg --mapfile $*.map $<  $(SRCDIR)/mega65-libc/cc65/src/*.c $(SRCDIR)/mega65-libc/cc65/src/*.s
 
 $(UTILDIR)/i2clist.prg:       $(UTILDIR)/i2clist.c $(CC65)
@@ -634,9 +629,8 @@ $(SRCDIR)/open-roms/build/mega65.rom:	$(SRCDIR)/open-roms/assets/8x8font.png
 $(SRCDIR)/open-roms/assets/8x8font.png:
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	git submodule init
-	git submodule update
-	( cd $(SRCDIR)/open-roms ; git submodule init ; git submodule update )
+	git submodule update --init $(SRCDIR)/open-roms
+	( cd $(SRCDIR)/open-roms ; git submodule update --init )
 
 $(VHDLSRCDIR)/shadowram.vhdl:	$(TOOLDIR)/mempacker/mempacker_new $(SDCARD_DIR)/BANNER.M65 $(ASSETS)/alphatest.bin Makefile $(SDCARD_DIR)/FREEZER.M65  $(SRCDIR)/open-roms/build/mega65.rom $(UTILDIR)/megaflash.prg | $(SDCARD_DIR)
 	$(warning =============================================================)
@@ -736,8 +730,7 @@ $(VHDLSRCDIR)/charrom.vhdl:	$(TOOLDIR)/pngprepare/pngprepare $(ASSETS)/8x8font.p
 iverilog/driver/iverilog:
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	git submodule init
-	git submodule update
+	git submodule update --init iverilog
 	cd iverilog ; autoconf ; ./configure ; make
 	mkdir -p iverilog/lib/ivl
 	ln -s ../../ivlpp/ivlpp iverilog/lib/ivl/ivlpp
