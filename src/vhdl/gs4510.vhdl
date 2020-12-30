@@ -3595,106 +3595,6 @@ begin
     -- For each unit we have to pick one or more inputs, and set at least one
     -- output.  We will map these all onto the same 64 bytes of registers.
 
-    if rising_edge(clock) then
-
-      cpu_pcm_bypass <= cpu_pcm_bypass_int;
-      pwm_mode_select <= pwm_mode_select_int;
-      
-      -- We also have one direct 18x25 multiplier for use by the hypervisor.
-      -- This multiplier fits a single DSP48E unit, and does not use the plumbing
-      -- facility.
-      -- Actually, we now offer 32x32 multiplication, as that should also be
-      -- possible in a single cycle
-      reg_mult_p(63 downto 0) <= reg_mult_a * reg_mult_b;
-
-      -- We also have four more little multipliers for the audio DMA stuff
-      for i in 0 to 3 loop
-        if audio_dma_sample_valid(i)='1' then
-          audio_dma_latched_sample(i) <= audio_dma_current_value(i);
-        end if;
-        audio_dma_multed(i) <= multiply_by_volume_coefficient(audio_dma_current_value(i), audio_dma_volume(i));
-        audio_dma_pan_multed(i) <= multiply_by_volume_coefficient(audio_dma_current_value(i), audio_dma_pan_volume(i));
-        if audio_dma_enables(i)='0' then
-          audio_dma_multed(i) <= (others => '0');
-        end if;
-      end loop;
-      -- And from those, we compose the combined left and right values, with
-      -- saturation detection
-      audio_dma_left_temp := audio_dma_multed(0)(23 downto 8) + audio_dma_multed(1)(23 downto 8)
-                             + audio_dma_pan_multed(2)(23 downto 8) + audio_dma_pan_multed(3)(23 downto 8);
-      if audio_dma_multed(0)(23) = audio_dma_multed(1)(23) and audio_dma_left_temp(15) /= audio_dma_multed(0)(23) then
-        -- overflow: so saturate instead
-        if audio_dma_saturation_enable='1' then
-          audio_dma_left <= (others => audio_dma_multed(1)(23));
-        else
-          audio_dma_left <= audio_dma_left_temp;
-        end if;
-        audio_dma_left_saturated <= '1';
-      else
-        audio_dma_left <= audio_dma_left_temp;
-        audio_dma_left_saturated <= '0';
-      end if;
-
-      audio_dma_right_temp := audio_dma_multed(2)(23 downto 8) + audio_dma_multed(3)(23 downto 8)
-                             + audio_dma_pan_multed(0)(23 downto 8) + audio_dma_pan_multed(1)(23 downto 8);
-      if audio_dma_multed(2)(23) = audio_dma_multed(3)(23) and audio_dma_right_temp(15) /= audio_dma_multed(2)(23) then
-        -- overflow: so saturate instead
-        if audio_dma_saturation_enable='1' then
-          audio_dma_right <= (others => audio_dma_multed(3)(23));
-        else
-          audio_dma_right <= audio_dma_right_temp;
-        end if;
-        audio_dma_right_saturated <= '1';
-      else
-        audio_dma_right <= audio_dma_right_temp;
-        audio_dma_right_saturated <= '0';
-      end if;
-      
-      resolved_vdc_to_viciv_src_address <= resolve_vdc_to_viciv_address(vdc_mem_addr_src);
-      resolved_vdc_to_viciv_address <= resolve_vdc_to_viciv_address(vdc_mem_addr);
-      
-      -- Disable all non-essential IO devices from memory map when in secure mode.
-      if hyper_protected_hardware(7)='1' then
-        chipselect_enables <= x"84"; -- SD card/multi IO controller and SIDs
-      -- (we disable the undesirable parts of the SD card interface separately)
-      else
-        chipselect_enables <= x"EF";
-      end if;
-      
-      if math_unit_enable then
-        -- We also provide some flags (which will later trigger interrupts) based
-        -- on the equality of math registers 14 and 15
-        if reg_math_regs(14) = reg_math_regs(15) then
-          math_unit_flags(6) <= '1';
-          if math_unit_flags(3 downto 2) = "00" then
-            math_unit_flags(7) <= '1' ;
-          end if;
-        else
-          math_unit_flags(6) <= '0';
-          if math_unit_flags(3 downto 2) = "11" then
-            math_unit_flags(7) <= '1' ;
-          end if;
-        end if;
-        if reg_math_regs(14) < reg_math_regs(15) then
-          math_unit_flags(5) <= '1';
-          if math_unit_flags(3 downto 2) = "10" then
-            math_unit_flags(7) <= '1' ;
-          end if;
-        else
-          math_unit_flags(5) <= '0';
-        end if;
-        if reg_math_regs(14) > reg_math_regs(15) then
-          math_unit_flags(4) <= '1';
-          if math_unit_flags(3 downto 2) = "01" then
-            math_unit_flags(7) <= '1' ;
-          end if;
-        else
-          math_unit_flags(4) <= '0';
-        end if;
-      end if;
-      
-    end if;
-
     if rising_edge(mathclock) and math_unit_enable then
       -- For the plumbed math units, we want to avoid having two huge 16x32x32
       -- MUXes to pick the inputs and outputs to and from the register file.
@@ -3811,7 +3711,106 @@ begin
     end if;    
 
     -- BEGINNING OF MAIN PROCESS FOR CPU
-    if rising_edge(clock) and all_pause='0' then
+    if rising_edge(clock) then
+
+      cpu_pcm_bypass <= cpu_pcm_bypass_int;
+      pwm_mode_select <= pwm_mode_select_int;
+      
+      -- We also have one direct 18x25 multiplier for use by the hypervisor.
+      -- This multiplier fits a single DSP48E unit, and does not use the plumbing
+      -- facility.
+      -- Actually, we now offer 32x32 multiplication, as that should also be
+      -- possible in a single cycle
+      reg_mult_p(63 downto 0) <= reg_mult_a * reg_mult_b;
+
+      -- We also have four more little multipliers for the audio DMA stuff
+      for i in 0 to 3 loop
+        if audio_dma_sample_valid(i)='1' then
+          audio_dma_latched_sample(i) <= audio_dma_current_value(i);
+        end if;
+        audio_dma_multed(i) <= multiply_by_volume_coefficient(audio_dma_current_value(i), audio_dma_volume(i));
+        audio_dma_pan_multed(i) <= multiply_by_volume_coefficient(audio_dma_current_value(i), audio_dma_pan_volume(i));
+        if audio_dma_enables(i)='0' then
+          audio_dma_multed(i) <= (others => '0');
+        end if;
+      end loop;
+      -- And from those, we compose the combined left and right values, with
+      -- saturation detection
+      audio_dma_left_temp := audio_dma_multed(0)(23 downto 8) + audio_dma_multed(1)(23 downto 8)
+                             + audio_dma_pan_multed(2)(23 downto 8) + audio_dma_pan_multed(3)(23 downto 8);
+      if audio_dma_multed(0)(23) = audio_dma_multed(1)(23) and audio_dma_left_temp(15) /= audio_dma_multed(0)(23) then
+        -- overflow: so saturate instead
+        if audio_dma_saturation_enable='1' then
+          audio_dma_left <= (others => audio_dma_multed(1)(23));
+        else
+          audio_dma_left <= audio_dma_left_temp;
+        end if;
+        audio_dma_left_saturated <= '1';
+      else
+        audio_dma_left <= audio_dma_left_temp;
+        audio_dma_left_saturated <= '0';
+      end if;
+
+      audio_dma_right_temp := audio_dma_multed(2)(23 downto 8) + audio_dma_multed(3)(23 downto 8)
+                             + audio_dma_pan_multed(0)(23 downto 8) + audio_dma_pan_multed(1)(23 downto 8);
+      if audio_dma_multed(2)(23) = audio_dma_multed(3)(23) and audio_dma_right_temp(15) /= audio_dma_multed(2)(23) then
+        -- overflow: so saturate instead
+        if audio_dma_saturation_enable='1' then
+          audio_dma_right <= (others => audio_dma_multed(3)(23));
+        else
+          audio_dma_right <= audio_dma_right_temp;
+        end if;
+        audio_dma_right_saturated <= '1';
+      else
+        audio_dma_right <= audio_dma_right_temp;
+        audio_dma_right_saturated <= '0';
+      end if;
+      
+      resolved_vdc_to_viciv_src_address <= resolve_vdc_to_viciv_address(vdc_mem_addr_src);
+      resolved_vdc_to_viciv_address <= resolve_vdc_to_viciv_address(vdc_mem_addr);
+      
+      -- Disable all non-essential IO devices from memory map when in secure mode.
+      if hyper_protected_hardware(7)='1' then
+        chipselect_enables <= x"84"; -- SD card/multi IO controller and SIDs
+      -- (we disable the undesirable parts of the SD card interface separately)
+      else
+        chipselect_enables <= x"EF";
+      end if;
+      
+      if math_unit_enable then
+        -- We also provide some flags (which will later trigger interrupts) based
+        -- on the equality of math registers 14 and 15
+        if reg_math_regs(14) = reg_math_regs(15) then
+          math_unit_flags(6) <= '1';
+          if math_unit_flags(3 downto 2) = "00" then
+            math_unit_flags(7) <= '1' ;
+          end if;
+        else
+          math_unit_flags(6) <= '0';
+          if math_unit_flags(3 downto 2) = "11" then
+            math_unit_flags(7) <= '1' ;
+          end if;
+        end if;
+        if reg_math_regs(14) < reg_math_regs(15) then
+          math_unit_flags(5) <= '1';
+          if math_unit_flags(3 downto 2) = "10" then
+            math_unit_flags(7) <= '1' ;
+          end if;
+        else
+          math_unit_flags(5) <= '0';
+        end if;
+        if reg_math_regs(14) > reg_math_regs(15) then
+          math_unit_flags(4) <= '1';
+          if math_unit_flags(3 downto 2) = "01" then
+            math_unit_flags(7) <= '1' ;
+          end if;
+        else
+          math_unit_flags(4) <= '0';
+        end if;
+      end if;
+      
+      
+      if all_pause='0' then
 
       -- Fiddling with IEC lines (either by us, or by a connected device)
       -- cancels POKe0,65 / holding CAPS LOCK to force full CPU speed.
@@ -7787,7 +7786,7 @@ begin
         last_cycles_per_frame <= cycles_per_frame;
         last_proceeds_per_frame <= proceeds_per_frame;
       end if;                
-      
+    end if;
     end if;                         -- if rising edge of clock
   end process;
   
