@@ -18,10 +18,6 @@
 	path = iverilog
 	url = https://github.com/steveicarus/iverilog.git
 	ignore = dirty
-[submodule "ghdl"]
-	path = ghdl
-	url = https://github.com/ghdl/ghdl.git
-	ignore = dirty
 [submodule "src/mega65-freezemenu"]
 	path = src/mega65-freezemenu
 	url = https://github.com/MEGA65/mega65-freezemenu.git
@@ -37,4 +33,8 @@
 [submodule "src/tools/acme"]
 	path = src/tools/acme
 	url = https://github.com/MEGA65/acme.git
+	ignore = dirty
+[submodule "oss-toolchain"]
+	path = oss-toolchain
+	url = https://github.com/LAK132/mega65-core-toolchain
 	ignore = dirty
