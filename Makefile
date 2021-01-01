@@ -1117,7 +1117,7 @@ $(XILINXBINDIR)/%.bin: $(XILINXBINDIR)/%.bba | $(BBASM)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
 	$(BBASM) --le $< $@
 
-$(XILINXBINDIR)/%.frames: $(XILINXBINDIR)/%.fasm | $(FASM2FRAMES)
+$(XILINXBINDIR)/%.frames: $(XILINXBINDIR)/%.fasm | $(FASM2FRAMES) $(XRAYDBDIR)/$($*_FPGA_FAMILY)/$($*_FPGA_PART)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
 	$(shell bash -c "source $(XRAYENV) && python3 $(FASM2FRAMES) --db-root '$(XRAYDBDIR)/$($*_FPGA_FAMILY)' --part $($*_FPGA_PART) $< > $@ || ( rm $@ ; exit 1 )" )
@@ -1133,7 +1133,7 @@ $$(XILINXBINDIR)/$1.fasm: $$(XILINXBINDIR)/$$($1_FPGA_PART).bin $$(XILINXBINDIR)
 	$$(warning ~~~~~~~~~~~~~~~~> Making: $$@)
 	$$(NEXTPNR) --chipdb $$(XILINXBINDIR)/$$($1_FPGA_PART).bin --xdc $$(VHDLSRCDIR)/$1.xdc --json $$(XILINXBINDIR)/$1.json --write $$(XILINXBINDIR)/$1_routed.json --fasm $$@
 
-$$(BINDIR)/$1.bit: $$(XILINXBINDIR)/$1.frames | $$(XC7FRAMES2BIT) $$(SDCARD_DIR)
+$$(BINDIR)/$1.bit: $$(XILINXBINDIR)/$1.frames | $$(XC7FRAMES2BIT) $$(SDCARD_DIR) $$(XRAYDBDIR)/$$($1_FPGA_FAMILY)/$$($1_FPGA_PART)
 	$$(warning =============================================================)
 	$$(warning ~~~~~~~~~~~~~~~~> Making: $$@)
 	$$(shell bash -c "source $$(XRAYENV) && $$(XC7FRAMES2BIT) --part_file '$$(XRAYDBDIR)/$$($1_FPGA_FAMILY)/$$($1_FPGA_PART)/part.yaml' --part_name $$($1_FPGA_PART) --frm_file $$< --output_file $$@" )
