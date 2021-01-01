@@ -1120,7 +1120,7 @@ $(XILINXBINDIR)/%.bin: $(XILINXBINDIR)/%.bba | $(BBASM)
 $(XILINXBINDIR)/%.frames: $(XILINXBINDIR)/%.fasm | $(FASM2FRAMES)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	$(shell bash -c "source $(XRAYENV) && python3 $(FASM2FRAMES) --db-root '$(XRAYDBDIR)/$($*_FPGA_FAMILY)' --part $($*_FPGA_PART) $< > $@ || ( rm $@ ; return 1 )" )
+	$(shell bash -c "source $(XRAYENV) && python3 $(FASM2FRAMES) --db-root '$(XRAYDBDIR)/$($*_FPGA_FAMILY)' --part $($*_FPGA_PART) $< > $@ || ( rm $@ ; exit 1 )" )
 
 define XILINX_BOARD_BUILDER=
 $$(XILINXBINDIR)/$1.json: $$($1_VERILOG) $$($1_VHDL) | $$(YOSYS) $$(GHDL_YOSYS_PLUGIN) preliminaries
