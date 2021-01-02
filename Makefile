@@ -58,6 +58,7 @@ OSS_TOOLCHAIN=oss-toolchain
 $(OSS_TOOLCHAIN)/Makefile:
 	git submodule update --init $(OSS_TOOLCHAIN)
 include $(OSS_TOOLCHAIN)/Makefile
+GHDL_FLAGS+=--std=08 --mb-comments -frelaxed-rules
 
 CBMCONVERT=	cbmconvert/cbmconvert
 
@@ -1126,7 +1127,7 @@ define XILINX_BOARD_BUILDER=
 $$(XILINXBINDIR)/$1.json: $$($1_VERILOG) $$($1_VHDL) | $$(YOSYS) $$(GHDL_YOSYS_PLUGIN) preliminaries
 	$$(warning =============================================================)
 	$$(warning ~~~~~~~~~~~~~~~~> Making: $$@)
-	$$(GHDL_YOSYS) -p "ghdl --std=93c -v -frelaxed -frelaxed-rules --mb-comments $$($1_VHDL) -e gs4510; read_verilog $$($1_VERILOG); synth_xilinx -flatten -abc9 -arch $$($1_FPGA_ARCH) -top cpu6502; write_json $$@"
+	$$(GHDL_YOSYS) -p "ghdl $$(GHDL_FLAGS) $$($1_VHDL) -e gs4510; read_verilog $$($1_VERILOG); synth_xilinx -flatten -abc9 -arch $$($1_FPGA_ARCH) -top cpu6502; write_json $$@"
 
 $$(XILINXBINDIR)/$1.fasm: $$(XILINXBINDIR)/$$($1_FPGA_PART).bin $$(XILINXBINDIR)/$1.json | $$(NEXTPNR)
 	$$(warning =============================================================)
