@@ -2121,8 +2121,7 @@ begin
     end read_long_address;
     
     -- purpose: obtain the byte of memory that has been read
-    impure function read_data_complex
-      return unsigned is
+    procedure read_data_complex is
       variable value : unsigned(7 downto 0);
     begin  -- read_data
       -- CPU hosted IO registers
@@ -2132,33 +2131,33 @@ begin
           -- Actually, this is all of $D700-$D7FF decoded by the CPU at present
           report "Reading CPU register (DMAgicRegister path)";
           case the_read_address(7 downto 0) is
-            when x"00"|x"05" => return reg_dmagic_addr(7 downto 0);
-            when x"01" => return reg_dmagic_addr(15 downto 8);
-            when x"02" => return reg_dmagic_withio
+            when x"00"|x"05" => read_data_copy <= reg_dmagic_addr(7 downto 0);
+            when x"01" => read_data_copy <= reg_dmagic_addr(15 downto 8);
+            when x"02" => read_data_copy <= reg_dmagic_withio
                             & reg_dmagic_addr(22 downto 16);
-            when x"03" => return reg_dmagic_status(7 downto 1) & support_f018b;
-            when x"04" => return reg_dmagic_addr(27 downto 20);
-            when x"10" => return "00" & badline_extra_cycles  & charge_for_branches_taken & vdc_enabled & slow_interrupts & badline_enable;
+            when x"03" => read_data_copy <= reg_dmagic_status(7 downto 1) & support_f018b;
+            when x"04" => read_data_copy <= reg_dmagic_addr(27 downto 20);
+            when x"10" => read_data_copy <= "00" & badline_extra_cycles  & charge_for_branches_taken & vdc_enabled & slow_interrupts & badline_enable;
             -- @IO:GS $D711.7 DMA:AUDEN Enable Audio DMA
             -- @IO:GS $D711.6 DMA:BLKD Audio DMA blocked (read only) DEBUG
             -- @IO:GS $D711.5 DMA:AUDWRBLK Audio DMA block writes (samples still get read) 
             -- @IO:GS $D711.4 DMA:NOMIX Audio DMA bypasses audio mixer
             -- @IO:GS $D711.3 AUDIO:PWMPDM PWM/PDM audio encoding select
             -- @IO:GS $D711.0-2 DMA:AUDBLKTO Audio DMA block timeout (read only) DEBUG
-            when x"11" => return audio_dma_enable & pending_dma_busy & audio_dma_disable_writes & cpu_pcm_bypass_int & pwm_mode_select_int & "000";
+            when x"11" => read_data_copy <= audio_dma_enable & pending_dma_busy & audio_dma_disable_writes & cpu_pcm_bypass_int & pwm_mode_select_int & "000";
                           
             -- XXX DEBUG registers for audio DMA
-            when x"12" => return audio_dma_left_saturated & audio_dma_right_saturated &
+            when x"12" => read_data_copy <= audio_dma_left_saturated & audio_dma_right_saturated &
                             "0000" & audio_dma_swap & audio_dma_saturation_enable;
 
             -- @IO:GS $D71C DMA:CH0RVOL Audio DMA channel 0 right channel volume
             -- @IO:GS $D71D DMA:CH1RVOL Audio DMA channel 1 right channel volume
             -- @IO:GS $D71E DMA:CH2LVOL Audio DMA channel 2 left channel volume
             -- @IO:GS $D71F DMA:CH3LVOL Audio DMA channel 3 left channel volume
-            when x"1c" => return audio_dma_pan_volume(0)(7 downto 0);
-            when x"1d" => return audio_dma_pan_volume(1)(7 downto 0);
-            when x"1e" => return audio_dma_pan_volume(2)(7 downto 0);
-            when x"1f" => return audio_dma_pan_volume(3)(7 downto 0);
+            when x"1c" => read_data_copy <= audio_dma_pan_volume(0)(7 downto 0);
+            when x"1d" => read_data_copy <= audio_dma_pan_volume(1)(7 downto 0);
+            when x"1e" => read_data_copy <= audio_dma_pan_volume(2)(7 downto 0);
+            when x"1f" => read_data_copy <= audio_dma_pan_volume(3)(7 downto 0);
 
             -- @IO:GS $D720.7 DMA:CH0EN Enable Audio DMA channel 0
             -- @IO:GS $D720.6 DMA:CH0LOOP Enable Audio DMA channel 0 looping
@@ -2250,96 +2249,96 @@ begin
 
                           
             -- $D720-$D72F - Audio DMA channel 0                          
-            when x"20" => return audio_dma_enables(0) & audio_dma_repeat(0) & audio_dma_signed(0) &
+            when x"20" => read_data_copy <= audio_dma_enables(0) & audio_dma_repeat(0) & audio_dma_signed(0) &
                             audio_dma_sine_wave(0) & audio_dma_stop(0) & audio_dma_sample_valid(0) & audio_dma_sample_width(0);
-            when x"21" => return audio_dma_base_addr(0)(7 downto 0);
-            when x"22" => return audio_dma_base_addr(0)(15 downto 8);
-            when x"23" => return audio_dma_base_addr(0)(23 downto 16);
-            when x"24" => return audio_dma_time_base(0)(7 downto 0);
-            when x"25" => return audio_dma_time_base(0)(15 downto 8);
-            when x"26" => return audio_dma_time_base(0)(23 downto 16);
-            when x"27" => return audio_dma_top_addr(0)(7 downto 0);
-            when x"28" => return audio_dma_top_addr(0)(15 downto 8);
-            when x"29" => return audio_dma_volume(0)(7 downto 0);
-            when x"2a" => return audio_dma_current_addr(0)(7 downto 0);
-            when x"2b" => return audio_dma_current_addr(0)(15 downto 8);
-            when x"2c" => return audio_dma_current_addr(0)(23 downto 16);
-            when x"2d" => return audio_dma_timing_counter(0)(7 downto 0);
-            when x"2e" => return audio_dma_timing_counter(0)(15 downto 8);
-            when x"2f" => return audio_dma_timing_counter(0)(23 downto 16);
+            when x"21" => read_data_copy <= audio_dma_base_addr(0)(7 downto 0);
+            when x"22" => read_data_copy <= audio_dma_base_addr(0)(15 downto 8);
+            when x"23" => read_data_copy <= audio_dma_base_addr(0)(23 downto 16);
+            when x"24" => read_data_copy <= audio_dma_time_base(0)(7 downto 0);
+            when x"25" => read_data_copy <= audio_dma_time_base(0)(15 downto 8);
+            when x"26" => read_data_copy <= audio_dma_time_base(0)(23 downto 16);
+            when x"27" => read_data_copy <= audio_dma_top_addr(0)(7 downto 0);
+            when x"28" => read_data_copy <= audio_dma_top_addr(0)(15 downto 8);
+            when x"29" => read_data_copy <= audio_dma_volume(0)(7 downto 0);
+            when x"2a" => read_data_copy <= audio_dma_current_addr(0)(7 downto 0);
+            when x"2b" => read_data_copy <= audio_dma_current_addr(0)(15 downto 8);
+            when x"2c" => read_data_copy <= audio_dma_current_addr(0)(23 downto 16);
+            when x"2d" => read_data_copy <= audio_dma_timing_counter(0)(7 downto 0);
+            when x"2e" => read_data_copy <= audio_dma_timing_counter(0)(15 downto 8);
+            when x"2f" => read_data_copy <= audio_dma_timing_counter(0)(23 downto 16);
             -- $D730-$D73F - Audio DMA channel 1
-            when x"30" => return audio_dma_enables(1) & audio_dma_repeat(1) & audio_dma_signed(1) &
+            when x"30" => read_data_copy <= audio_dma_enables(1) & audio_dma_repeat(1) & audio_dma_signed(1) &
                             audio_dma_sine_wave(1) & audio_dma_stop(1) & audio_dma_sample_valid(1) & audio_dma_sample_width(1);
-            when x"31" => return audio_dma_base_addr(1)(7 downto 0);
-            when x"32" => return audio_dma_base_addr(1)(15 downto 8);
-            when x"33" => return audio_dma_base_addr(1)(23 downto 16);
-            when x"34" => return audio_dma_time_base(1)(7 downto 0);
-            when x"35" => return audio_dma_time_base(1)(15 downto 8);
-            when x"36" => return audio_dma_time_base(1)(23 downto 16);
-            when x"37" => return audio_dma_top_addr(1)(7 downto 0);
-            when x"38" => return audio_dma_top_addr(1)(15 downto 8);
-            when x"39" => return audio_dma_volume(1)(7 downto 0);
-            when x"3a" => return audio_dma_current_addr(1)(7 downto 0);
-            when x"3b" => return audio_dma_current_addr(1)(15 downto 8);
-            when x"3c" => return audio_dma_current_addr(1)(23 downto 16);
-            when x"3d" => return audio_dma_timing_counter(1)(7 downto 0);
-            when x"3e" => return audio_dma_timing_counter(1)(15 downto 8);
-            when x"3f" => return audio_dma_timing_counter(1)(23 downto 16);
+            when x"31" => read_data_copy <= audio_dma_base_addr(1)(7 downto 0);
+            when x"32" => read_data_copy <= audio_dma_base_addr(1)(15 downto 8);
+            when x"33" => read_data_copy <= audio_dma_base_addr(1)(23 downto 16);
+            when x"34" => read_data_copy <= audio_dma_time_base(1)(7 downto 0);
+            when x"35" => read_data_copy <= audio_dma_time_base(1)(15 downto 8);
+            when x"36" => read_data_copy <= audio_dma_time_base(1)(23 downto 16);
+            when x"37" => read_data_copy <= audio_dma_top_addr(1)(7 downto 0);
+            when x"38" => read_data_copy <= audio_dma_top_addr(1)(15 downto 8);
+            when x"39" => read_data_copy <= audio_dma_volume(1)(7 downto 0);
+            when x"3a" => read_data_copy <= audio_dma_current_addr(1)(7 downto 0);
+            when x"3b" => read_data_copy <= audio_dma_current_addr(1)(15 downto 8);
+            when x"3c" => read_data_copy <= audio_dma_current_addr(1)(23 downto 16);
+            when x"3d" => read_data_copy <= audio_dma_timing_counter(1)(7 downto 0);
+            when x"3e" => read_data_copy <= audio_dma_timing_counter(1)(15 downto 8);
+            when x"3f" => read_data_copy <= audio_dma_timing_counter(1)(23 downto 16);
                                         -- $D740-$D74F - Audio DMA channel 2
-            when x"40" => return audio_dma_enables(2) & audio_dma_repeat(2) & audio_dma_signed(2) &
+            when x"40" => read_data_copy <= audio_dma_enables(2) & audio_dma_repeat(2) & audio_dma_signed(2) &
                             audio_dma_sine_wave(2) & audio_dma_stop(2) & audio_dma_sample_valid(2) & audio_dma_sample_width(2);
-            when x"41" => return audio_dma_base_addr(2)(7 downto 0);
-            when x"42" => return audio_dma_base_addr(2)(15 downto 8);
-            when x"43" => return audio_dma_base_addr(2)(23 downto 16);
-            when x"44" => return audio_dma_time_base(2)(7 downto 0);
-            when x"45" => return audio_dma_time_base(2)(15 downto 8);
-            when x"46" => return audio_dma_time_base(2)(23 downto 16);
-            when x"47" => return audio_dma_top_addr(2)(7 downto 0);
-            when x"48" => return audio_dma_top_addr(2)(15 downto 8);
-            when x"49" => return audio_dma_volume(2)(7 downto 0);
-            when x"4a" => return audio_dma_current_addr(2)(7 downto 0);
-            when x"4b" => return audio_dma_current_addr(2)(15 downto 8);
-            when x"4c" => return audio_dma_current_addr(2)(23 downto 16);
-            when x"4d" => return audio_dma_timing_counter(2)(7 downto 0);
-            when x"4e" => return audio_dma_timing_counter(2)(15 downto 8);
-            when x"4f" => return audio_dma_timing_counter(2)(23 downto 16);
+            when x"41" => read_data_copy <= audio_dma_base_addr(2)(7 downto 0);
+            when x"42" => read_data_copy <= audio_dma_base_addr(2)(15 downto 8);
+            when x"43" => read_data_copy <= audio_dma_base_addr(2)(23 downto 16);
+            when x"44" => read_data_copy <= audio_dma_time_base(2)(7 downto 0);
+            when x"45" => read_data_copy <= audio_dma_time_base(2)(15 downto 8);
+            when x"46" => read_data_copy <= audio_dma_time_base(2)(23 downto 16);
+            when x"47" => read_data_copy <= audio_dma_top_addr(2)(7 downto 0);
+            when x"48" => read_data_copy <= audio_dma_top_addr(2)(15 downto 8);
+            when x"49" => read_data_copy <= audio_dma_volume(2)(7 downto 0);
+            when x"4a" => read_data_copy <= audio_dma_current_addr(2)(7 downto 0);
+            when x"4b" => read_data_copy <= audio_dma_current_addr(2)(15 downto 8);
+            when x"4c" => read_data_copy <= audio_dma_current_addr(2)(23 downto 16);
+            when x"4d" => read_data_copy <= audio_dma_timing_counter(2)(7 downto 0);
+            when x"4e" => read_data_copy <= audio_dma_timing_counter(2)(15 downto 8);
+            when x"4f" => read_data_copy <= audio_dma_timing_counter(2)(23 downto 16);
             -- $D750-$D75F - Audio DMA channel 3
-            when x"50" => return audio_dma_enables(3) & audio_dma_repeat(3) & audio_dma_signed(3) &
+            when x"50" => read_data_copy <= audio_dma_enables(3) & audio_dma_repeat(3) & audio_dma_signed(3) &
                             audio_dma_sine_wave(3) & audio_dma_stop(3) & audio_dma_sample_valid(3) & audio_dma_sample_width(3);
-            when x"51" => return audio_dma_base_addr(3)(7 downto 0);
-            when x"52" => return audio_dma_base_addr(3)(15 downto 8);
-            when x"53" => return audio_dma_base_addr(3)(23 downto 16);
-            when x"54" => return audio_dma_time_base(3)(7 downto 0);
-            when x"55" => return audio_dma_time_base(3)(15 downto 8);
-            when x"56" => return audio_dma_time_base(3)(23 downto 16);
-            when x"57" => return audio_dma_top_addr(3)(7 downto 0);
-            when x"58" => return audio_dma_top_addr(3)(15 downto 8);
-            when x"59" => return audio_dma_volume(3)(7 downto 0);
-            when x"5a" => return audio_dma_current_addr(3)(7 downto 0);
-            when x"5b" => return audio_dma_current_addr(3)(15 downto 8);
-            when x"5c" => return audio_dma_current_addr(3)(23 downto 16);
-            when x"5d" => return audio_dma_timing_counter(3)(7 downto 0);
-            when x"5e" => return audio_dma_timing_counter(3)(15 downto 8);
-            when x"5f" => return audio_dma_timing_counter(3)(23 downto 16);
+            when x"51" => read_data_copy <= audio_dma_base_addr(3)(7 downto 0);
+            when x"52" => read_data_copy <= audio_dma_base_addr(3)(15 downto 8);
+            when x"53" => read_data_copy <= audio_dma_base_addr(3)(23 downto 16);
+            when x"54" => read_data_copy <= audio_dma_time_base(3)(7 downto 0);
+            when x"55" => read_data_copy <= audio_dma_time_base(3)(15 downto 8);
+            when x"56" => read_data_copy <= audio_dma_time_base(3)(23 downto 16);
+            when x"57" => read_data_copy <= audio_dma_top_addr(3)(7 downto 0);
+            when x"58" => read_data_copy <= audio_dma_top_addr(3)(15 downto 8);
+            when x"59" => read_data_copy <= audio_dma_volume(3)(7 downto 0);
+            when x"5a" => read_data_copy <= audio_dma_current_addr(3)(7 downto 0);
+            when x"5b" => read_data_copy <= audio_dma_current_addr(3)(15 downto 8);
+            when x"5c" => read_data_copy <= audio_dma_current_addr(3)(23 downto 16);
+            when x"5d" => read_data_copy <= audio_dma_timing_counter(3)(7 downto 0);
+            when x"5e" => read_data_copy <= audio_dma_timing_counter(3)(15 downto 8);
+            when x"5f" => read_data_copy <= audio_dma_timing_counter(3)(23 downto 16);
 
                                              
             -- $D760-$D7DF reserved for math unit functions
-            when x"68" => return div_q(7 downto 0);
-            when x"69" => return div_q(15 downto 8);
-            when x"6a" => return div_q(23 downto 16);
-            when x"6b" => return div_q(31 downto 24);
-            when x"6c" => return div_q(39 downto 32);
-            when x"6d" => return div_q(47 downto 40);
-            when x"6e" => return div_q(55 downto 48);
-            when x"6f" => return div_q(63 downto 56);
-            when x"70" => return reg_mult_a(7 downto 0);
-            when x"71" => return reg_mult_a(15 downto 8);
-            when x"72" => return reg_mult_a(23 downto 16);
-            when x"73" => return reg_mult_a(31 downto 24);
-            when x"74" => return reg_mult_b(7 downto 0);
-            when x"75" => return reg_mult_b(15 downto 8);
-            when x"76" => return reg_mult_b(23 downto 16);
-            when x"77" => return reg_mult_b(31 downto 24);
+            when x"68" => read_data_copy <= div_q(7 downto 0);
+            when x"69" => read_data_copy <= div_q(15 downto 8);
+            when x"6a" => read_data_copy <= div_q(23 downto 16);
+            when x"6b" => read_data_copy <= div_q(31 downto 24);
+            when x"6c" => read_data_copy <= div_q(39 downto 32);
+            when x"6d" => read_data_copy <= div_q(47 downto 40);
+            when x"6e" => read_data_copy <= div_q(55 downto 48);
+            when x"6f" => read_data_copy <= div_q(63 downto 56);
+            when x"70" => read_data_copy <= reg_mult_a(7 downto 0);
+            when x"71" => read_data_copy <= reg_mult_a(15 downto 8);
+            when x"72" => read_data_copy <= reg_mult_a(23 downto 16);
+            when x"73" => read_data_copy <= reg_mult_a(31 downto 24);
+            when x"74" => read_data_copy <= reg_mult_b(7 downto 0);
+            when x"75" => read_data_copy <= reg_mult_b(15 downto 8);
+            when x"76" => read_data_copy <= reg_mult_b(23 downto 16);
+            when x"77" => read_data_copy <= reg_mult_b(31 downto 24);
             -- @IO:GS $D768 MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
             -- @IO:GS $D769 MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
             -- @IO:GS $D76A MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
@@ -2365,14 +2364,14 @@ begin
             -- @IO:GS $D77E MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
             -- @IO:GS $D77F MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
 
-            when x"78" => return reg_mult_p(7 downto 0);
-            when x"79" => return reg_mult_p(15 downto 8);
-            when x"7a" => return reg_mult_p(23 downto 16);
-            when x"7b" => return reg_mult_p(31 downto 24);
-            when x"7c" => return reg_mult_p(39 downto 32);
-            when x"7d" => return reg_mult_p(47 downto 40);
-            when x"7e" => return reg_mult_p(55 downto 48);
-            when x"7f" => return reg_mult_p(63 downto 56);
+            when x"78" => read_data_copy <= reg_mult_p(7 downto 0);
+            when x"79" => read_data_copy <= reg_mult_p(15 downto 8);
+            when x"7a" => read_data_copy <= reg_mult_p(23 downto 16);
+            when x"7b" => read_data_copy <= reg_mult_p(31 downto 24);
+            when x"7c" => read_data_copy <= reg_mult_p(39 downto 32);
+            when x"7d" => read_data_copy <= reg_mult_p(47 downto 40);
+            when x"7e" => read_data_copy <= reg_mult_p(55 downto 48);
+            when x"7f" => read_data_copy <= reg_mult_p(63 downto 56);
             -- @IO:GS $D780-$D7BF - 16 x 32 bit Math Unit values
             -- @IO:GS $D780 MATH:MATHIN0 Math unit 32-bit input 0
             -- @IO:GS $D781 MATH:MATHIN0 Math unit 32-bit input 0
@@ -2448,11 +2447,11 @@ begin
               x"B0"|x"B1"|x"B2"|x"B3"|x"B4"|x"B5"|x"B6"|x"B7"|
               x"B8"|x"B9"|x"BA"|x"BB"|x"BC"|x"BD"|x"BE"|x"BF" =>
               case the_read_address(1 downto 0) is
-                when "00" => return reg_math_regs(to_integer(the_read_address(5 downto 2)))(7 downto 0);              
-                when "01" => return reg_math_regs(to_integer(the_read_address(5 downto 2)))(15 downto 8);
-                when "10" => return reg_math_regs(to_integer(the_read_address(5 downto 2)))(23 downto 16);
-                when "11" => return reg_math_regs(to_integer(the_read_address(5 downto 2)))(31 downto 24);
-                when others => return x"59";
+                when "00" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(7 downto 0);              
+                when "01" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(15 downto 8);
+                when "10" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(23 downto 16);
+                when "11" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(31 downto 24);
+                when others => read_data_copy <= x"59";
               end case;
             when
               --@IO:GS $D7C0-$D7CF - 16 Math function unit input A (3-0) and input B (7-4) selects
@@ -2490,7 +2489,7 @@ begin
               -- @IO:GS $D7CF.4-7 MATH:UNIT15INB Select which of the 16 32-bit math registers is input B for Math Function Unit 15.
               x"C0"|x"C1"|x"C2"|x"C3"|x"C4"|x"C5"|x"C6"|x"C7"|
               x"C8"|x"C9"|x"CA"|x"CB"|x"CC"|x"CD"|x"CE"|x"CF" =>
-              return
+              read_data_copy <=
                 to_unsigned(reg_math_config(to_integer(the_read_address(3 downto 0))).source_b,4)
                 &to_unsigned(reg_math_config(to_integer(the_read_address(3 downto 0))).source_a,4);
             when
@@ -2592,7 +2591,7 @@ begin
               
               x"D0"|x"D1"|x"D2"|x"D3"|x"D4"|x"D5"|x"D6"|x"D7"|
               x"D8"|x"D9"|x"DA"|x"DB"|x"DC"|x"DD"|x"DE"|x"DF" =>
-              return
+              read_data_copy <=
                 reg_math_config(to_integer(the_read_address(3 downto 0))).latched
                 &reg_math_config(to_integer(the_read_address(3 downto 0))).do_add
                 &reg_math_config(to_integer(the_read_address(3 downto 0))).output_high
@@ -2600,43 +2599,43 @@ begin
                 &to_unsigned(reg_math_config(to_integer(the_read_address(3 downto 0))).output,4);
               -- @IO:GS $D7E0 MATH:LATCHINT Latch interval for latched outputs (in CPU cycles)
               -- $D7E1 is documented higher up
-            when x"E0" => return reg_math_latch_interval;
-            when x"E1" => return math_unit_flags;
+            when x"E0" => read_data_copy <= reg_math_latch_interval;
+            when x"E1" => read_data_copy <= math_unit_flags;
             -- @IO:GS $D7E2 MATH:RESERVED Reserved
             -- @IO:GS $D7E3 MATH:RESERVED Reserved
             --@IO:GS $D7E4 MATH:ITERCNT Iteration Counter (32 bit)
             --@IO:GS $D7E5 MATH:ITERCNT Iteration Counter (32 bit)
             --@IO:GS $D7E6 MATH:ITERCNT Iteration Counter (32 bit)
             --@IO:GS $D7E7 MATH:ITERCNT Iteration Counter (32 bit)
-            when x"e4" => return reg_math_cycle_counter(7 downto 0);
-            when x"e5" => return reg_math_cycle_counter(15 downto 8);
-            when x"e6" => return reg_math_cycle_counter(23 downto 16);
-            when x"e7" => return reg_math_cycle_counter(31 downto 24);
+            when x"e4" => read_data_copy <= reg_math_cycle_counter(7 downto 0);
+            when x"e5" => read_data_copy <= reg_math_cycle_counter(15 downto 8);
+            when x"e6" => read_data_copy <= reg_math_cycle_counter(23 downto 16);
+            when x"e7" => read_data_copy <= reg_math_cycle_counter(31 downto 24);
             --@IO:GS $D7E8 MATH:ITERCMP Math iteration counter comparator (32 bit)
             --@IO:GS $D7E9 MATH:ITERCMP Math iteration counter comparator (32 bit)
             --@IO:GS $D7EA MATH:ITERCMP Math iteration counter comparator (32 bit)
             --@IO:GS $D7EB MATH:ITERCMP Math iteration counter comparator (32 bit)
-            when x"e8" => return reg_math_cycle_compare(7 downto 0);
-            when x"e9" => return reg_math_cycle_compare(15 downto 8);
-            when x"ea" => return reg_math_cycle_compare(23 downto 16);
-            when x"eb" => return reg_math_cycle_compare(31 downto 24);
+            when x"e8" => read_data_copy <= reg_math_cycle_compare(7 downto 0);
+            when x"e9" => read_data_copy <= reg_math_cycle_compare(15 downto 8);
+            when x"ea" => read_data_copy <= reg_math_cycle_compare(23 downto 16);
+            when x"eb" => read_data_copy <= reg_math_cycle_compare(31 downto 24);
 
             --@IO:GS $D7F2 CPU:PHIPERFRAME Count the number of PHI cycles per video frame (LSB)              
             --@IO:GS $D7F5 CPU:PHIPERFRAME Count the number of PHI cycles per video frame (MSB)
-            when x"f2" => return last_cycles_per_frame(7 downto 0);
-            when x"f3" => return last_cycles_per_frame(15 downto 8);
-            when x"f4" => return last_cycles_per_frame(23 downto 16);
-            when x"f5" => return last_cycles_per_frame(31 downto 24);
+            when x"f2" => read_data_copy <= last_cycles_per_frame(7 downto 0);
+            when x"f3" => read_data_copy <= last_cycles_per_frame(15 downto 8);
+            when x"f4" => read_data_copy <= last_cycles_per_frame(23 downto 16);
+            when x"f5" => read_data_copy <= last_cycles_per_frame(31 downto 24);
             --@IO:GS $D7F6 CPU:CYCPERFRAME Count the number of usable (proceed=1) CPU cycles per video frame (LSB)              
             --@IO:GS $D7F9 CPU:CYCPERFRAME Count the number of usable (proceed=1) CPU cycles per video frame (MSB)
-            when x"f6" => return last_proceeds_per_frame(7 downto 0);
-            when x"f7" => return last_proceeds_per_frame(15 downto 8);
-            when x"f8" => return last_proceeds_per_frame(23 downto 16);
-            when x"f9" => return last_proceeds_per_frame(31 downto 24);
+            when x"f6" => read_data_copy <= last_proceeds_per_frame(7 downto 0);
+            when x"f7" => read_data_copy <= last_proceeds_per_frame(15 downto 8);
+            when x"f8" => read_data_copy <= last_proceeds_per_frame(23 downto 16);
+            when x"f9" => read_data_copy <= last_proceeds_per_frame(31 downto 24);
             -- @IO:GS $D7FA CPU:FRAMECOUNT Count number of elapsed video frames
-            when x"fa" => return frame_counter(7 downto 0);
-            when x"fb" => return "000000" & cartridge_enable & "0";
-            when x"fc" => return unsigned(chipselect_enables);
+            when x"fa" => read_data_copy <= frame_counter(7 downto 0);
+            when x"fb" => read_data_copy <= "000000" & cartridge_enable & "0";
+            when x"fc" => read_data_copy <= unsigned(chipselect_enables);
             when x"fd" =>
               report "Reading $D7FD";
               value(7) := force_exrom;
@@ -2647,90 +2646,90 @@ begin
               value(2) := game;
               value(1) := cartridge_enable;              
               value(0) := '1'; -- Set if power is on, clear if power is off
-              return value;
+              read_data_copy <= value;
             when x"fe" =>
               value(0) := slow_prefetch_enable;
               value(1) := ocean_cart_mode;
               value(7 downto 2) := (others => '0');
-              return value;
-            when others => return x"ff";
+              read_data_copy <= value;
+            when others => read_data_copy <= x"ff";
           end case;
         when HypervisorRegister =>
           report "HYPERPORT: Reading hypervisor register";
           case hyperport_num is
-            when "000000" => return hyper_a;
-            when "000001" => return hyper_x;
-            when "000010" => return hyper_y;
-            when "000011" => return hyper_z;
-            when "000100" => return hyper_b;
-            when "000101" => return hyper_sp;
-            when "000110" => return hyper_sph;
-            when "000111" => return hyper_p;
-            when "001000" => return hyper_pc(7 downto 0);
-            when "001001" => return hyper_pc(15 downto 8);                           
+            when "000000" => read_data_copy <= hyper_a;
+            when "000001" => read_data_copy <= hyper_x;
+            when "000010" => read_data_copy <= hyper_y;
+            when "000011" => read_data_copy <= hyper_z;
+            when "000100" => read_data_copy <= hyper_b;
+            when "000101" => read_data_copy <= hyper_sp;
+            when "000110" => read_data_copy <= hyper_sph;
+            when "000111" => read_data_copy <= hyper_p;
+            when "001000" => read_data_copy <= hyper_pc(7 downto 0);
+            when "001001" => read_data_copy <= hyper_pc(15 downto 8);                           
             when "001010" =>
-              return unsigned(std_logic_vector(hyper_map_low)
+              read_data_copy <= unsigned(std_logic_vector(hyper_map_low)
                               & std_logic_vector(hyper_map_offset_low(11 downto 8)));
-            when "001011" => return hyper_map_offset_low(7 downto 0);
+            when "001011" => read_data_copy <= hyper_map_offset_low(7 downto 0);
             when "001100" =>
-              return unsigned(std_logic_vector(hyper_map_high)
+              read_data_copy <= unsigned(std_logic_vector(hyper_map_high)
                               & std_logic_vector(hyper_map_offset_high(11 downto 8)));
-            when "001101" => return hyper_map_offset_high(7 downto 0);
-            when "001110" => return hyper_mb_low;
-            when "001111" => return hyper_mb_high;
-            when "010000" => return hyper_port_00;
-            when "010001" => return hyper_port_01;
-            when "010010" => return hyper_iomode;
-            when "010011" => return hyper_dmagic_src_mb;
-            when "010100" => return hyper_dmagic_dst_mb;
-            when "010101" => return hyper_dmagic_list_addr(7 downto 0);
-            when "010110" => return hyper_dmagic_list_addr(15 downto 8);
-            when "010111" => return hyper_dmagic_list_addr(23 downto 16);
+            when "001101" => read_data_copy <= hyper_map_offset_high(7 downto 0);
+            when "001110" => read_data_copy <= hyper_mb_low;
+            when "001111" => read_data_copy <= hyper_mb_high;
+            when "010000" => read_data_copy <= hyper_port_00;
+            when "010001" => read_data_copy <= hyper_port_01;
+            when "010010" => read_data_copy <= hyper_iomode;
+            when "010011" => read_data_copy <= hyper_dmagic_src_mb;
+            when "010100" => read_data_copy <= hyper_dmagic_dst_mb;
+            when "010101" => read_data_copy <= hyper_dmagic_list_addr(7 downto 0);
+            when "010110" => read_data_copy <= hyper_dmagic_list_addr(15 downto 8);
+            when "010111" => read_data_copy <= hyper_dmagic_list_addr(23 downto 16);
             when "011000" =>
-              return to_unsigned(0,4)&hyper_dmagic_list_addr(27 downto 24);
+              read_data_copy <= to_unsigned(0,4)&hyper_dmagic_list_addr(27 downto 24);
             when "011001" =>
-              return "000000"&virtualise_sd1&virtualise_sd0;
+              read_data_copy <= "000000"&virtualise_sd1&virtualise_sd0;
               
             -- Virtual memory page registers here
             when "011101" =>
-              return unsigned(std_logic_vector(reg_pagenumber(1 downto 0))
+              read_data_copy <= unsigned(std_logic_vector(reg_pagenumber(1 downto 0))
                               &"0"
                               &reg_pageactive
                               &reg_pages_dirty);
-            when "011110" => return reg_pagenumber(9 downto 2);
-            when "011111" => return reg_pagenumber(17 downto 10);
-            when "100000" => return reg_page0_logical(7 downto 0);
-            when "100001" => return reg_page0_logical(15 downto 8);
-            when "100010" => return reg_page0_physical(7 downto 0);
-            when "100011" => return reg_page0_physical(15 downto 8);
-            when "100100" => return reg_page1_logical(7 downto 0);
-            when "100101" => return reg_page1_logical(15 downto 8);
-            when "100110" => return reg_page1_physical(7 downto 0);
-            when "100111" => return reg_page1_physical(15 downto 8);
-            when "101000" => return reg_page2_logical(7 downto 0);
-            when "101001" => return reg_page2_logical(15 downto 8);
-            when "101010" => return reg_page2_physical(7 downto 0);
-            when "101011" => return reg_page2_physical(15 downto 8);
-            when "101100" => return reg_page3_logical(7 downto 0);
-            when "101101" => return reg_page3_logical(15 downto 8);
-            when "101110" => return reg_page3_physical(7 downto 0);
-            when "101111" => return reg_page3_physical(15 downto 8);
-            when "110000" => return georam_page(19 downto 12);
-            when "110001" => return georam_blockmask;
+            when "011110" => read_data_copy <= reg_pagenumber(9 downto 2);
+            when "011111" => read_data_copy <= reg_pagenumber(17 downto 10);
+            when "100000" => read_data_copy <= reg_page0_logical(7 downto 0);
+            when "100001" => read_data_copy <= reg_page0_logical(15 downto 8);
+            when "100010" => read_data_copy <= reg_page0_physical(7 downto 0);
+            when "100011" => read_data_copy <= reg_page0_physical(15 downto 8);
+            when "100100" => read_data_copy <= reg_page1_logical(7 downto 0);
+            when "100101" => read_data_copy <= reg_page1_logical(15 downto 8);
+            when "100110" => read_data_copy <= reg_page1_physical(7 downto 0);
+            when "100111" => read_data_copy <= reg_page1_physical(15 downto 8);
+            when "101000" => read_data_copy <= reg_page2_logical(7 downto 0);
+            when "101001" => read_data_copy <= reg_page2_logical(15 downto 8);
+            when "101010" => read_data_copy <= reg_page2_physical(7 downto 0);
+            when "101011" => read_data_copy <= reg_page2_physical(15 downto 8);
+            when "101100" => read_data_copy <= reg_page3_logical(7 downto 0);
+            when "101101" => read_data_copy <= reg_page3_logical(15 downto 8);
+            when "101110" => read_data_copy <= reg_page3_physical(7 downto 0);
+            when "101111" => read_data_copy <= reg_page3_physical(15 downto 8);
+            when "110000" => read_data_copy <= georam_page(19 downto 12);
+            when "110001" => read_data_copy <= georam_blockmask;
             --$D672 - Protected Hardware
-            when "110010" => return hyper_protected_hardware;
+            when "110010" => read_data_copy <= hyper_protected_hardware;
                              
             when "111100" => -- $D640+$3C
               -- @IO:GS $D67C.6 - (read) Hypervisor internal immediate UART monitor busy flag (can write when 0)
               -- @IO:GS $D67C.7 - (read) Hypervisor serial output from UART monitor busy flag (can write when 0)
               -- so we have an immediate busy flag that we manage separately.
-              return "000000"
+              read_data_copy <= "000000"
                 & immediate_monitor_char_busy
                 & monitor_char_busy;
 
             when "111101" =>
               -- this section $D67D
-              return nmi_pending
+              read_data_copy <= nmi_pending
                 & iec_bus_active
                 & force_4502
                 & force_fast
@@ -2742,53 +2741,53 @@ begin
               -- @IO:GS $D67E.7 (read) Hypervisor upgraded flag. Writing any value here sets this bit until next power on (i.e., it surives reset).
               -- @IO:GS $D67E.6 (read) Hypervisor read /EXROM signal from cartridge.
               -- @IO:GS $D67E.5 (read) Hypervisor read /GAME signal from cartridge.
-              return hypervisor_upgraded
+              read_data_copy <= hypervisor_upgraded
                 & exrom
                 & game
                 & "00000";
-            when "111111" => return x"48"; -- 'H' for Hypermode
-            when others => return x"FF";
+            when "111111" => read_data_copy <= x"48"; -- 'H' for Hypermode
+            when others => read_data_copy <= x"FF";
           end case;
 
         when CPUPort =>
           report "reading from CPU port" severity note;
           case cpuport_num is
-            when x"0" => return cpuport_ddr;
-            when x"1" => return cpuport_value;
-            when x"2" => return rec_status;
-            when x"3" => return vdc_status;
+            when x"0" => read_data_copy <= cpuport_ddr;
+            when x"1" => read_data_copy <= cpuport_value;
+            when x"2" => read_data_copy <= rec_status;
+            when x"3" => read_data_copy <= vdc_status;
             when x"4" =>
               -- Read other VDC registers.
-              return x"ff";
-            when x"5" => return vdc_mem_addr(7 downto 0);
-            when x"6" => return vdc_mem_addr(15 downto 8);
-            when x"7" => return vdc_reg_num(7 downto 0);
-            when others => return x"ff";
+              read_data_copy <= x"ff";
+            when x"5" => read_data_copy <= vdc_mem_addr(7 downto 0);
+            when x"6" => read_data_copy <= vdc_mem_addr(15 downto 8);
+            when x"7" => read_data_copy <= vdc_reg_num(7 downto 0);
+            when others => read_data_copy <= x"ff";
           end case;
         when Shadow =>
           report "reading from shadow RAM" severity note;
-          return shadow_rdata;
+          read_data_copy <= shadow_rdata;
         when ColourRAM =>
           report "reading colour RAM fastio byte $" & to_hstring(fastio_vic_rdata) severity note;
-          return unsigned(fastio_colour_ram_rdata);
+          read_data_copy <= unsigned(fastio_colour_ram_rdata);
         when VICIV =>
           report "reading VIC fastio byte $" & to_hstring(fastio_vic_rdata) severity note;
-          return unsigned(fastio_vic_rdata);
+          read_data_copy <= unsigned(fastio_vic_rdata);
         when FastIO =>
           report "reading normal fastio byte $" & to_hstring(fastio_rdata) severity note;
-          return unsigned(fastio_rdata);
+          read_data_copy <= unsigned(fastio_rdata);
         when Hyppo =>
           report "reading hyppo fastio byte $" & to_hstring(hyppo_rdata) severity note;
-          return unsigned(hyppo_rdata);
+          read_data_copy <= unsigned(hyppo_rdata);
         when SlowRAM =>
           report "reading slow RAM data. Word is $" & to_hstring(slow_access_rdata) severity note;
-          return unsigned(slow_access_rdata);
+          read_data_copy <= unsigned(slow_access_rdata);
         when SlowRAMPreFetch =>
           report "reading slow prefetched RAM data. Word is $" & to_hstring(slow_access_rdata) severity note;
-          return unsigned(slow_prefetch_data);          
+          read_data_copy <= unsigned(slow_prefetch_data);          
         when Unmapped =>
           report "accessing unmapped memory" severity note;
-          return x"A0";                     -- make unmmapped memory obvious
+          read_data_copy <= x"A0";                     -- make unmmapped memory obvious
       end case;
     end read_data_complex; 
 
@@ -4637,7 +4636,9 @@ begin
       
                                         -- Copy read memory location to simplify reading from memory.
                                         -- Penalty is +1 wait state for memory other than shadowram.
-      read_data_copy <= read_data_complex;
+      -- GHDL bug workaround: impure functions aren't supported very well, they can't have more than one return value.
+      -- read_data_copy <= read_data_complex;
+      read_data_complex;
       
                                         -- By default we are doing nothing new.
       pc_inc := '0'; pc_dec := '0'; dec_sp := '0';
