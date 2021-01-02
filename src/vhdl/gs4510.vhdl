@@ -1359,8 +1359,9 @@ architecture Behavioural of gs4510 is
 
   signal math_input_number : integer range 0 to 15 := 0;
   signal math_input_value : unsigned(31 downto 0) := (others => '0');
-  signal math_output_value_low : unsigned(31 downto 0) := (others => '0');
-  signal math_output_value_high : unsigned(31 downto 0) := (others => '0');
+  type math_output_value_array is array(0 to math_unit_count - 1) of unsigned(31 downto 0);
+  signal math_output_value_low : math_output_value_array := (others => to_unsigned(0,32));
+  signal math_output_value_high : math_output_value_array := (others => to_unsigned(0,32));
 
   -- Start with input and outputting enabled
   signal math_unit_flags : unsigned(7 downto 0) := x"03";
@@ -1450,9 +1451,8 @@ begin
       input_b => reg_math_config_drive(unit).source_b,
       input_value_number => math_input_number,
       input_value => math_input_value,
-      output_select => math_output_counter,
-      output_value(31 downto 0) => math_output_value_low,
-      output_value(63 downto 32) => math_output_value_high
+      output_value(31 downto 0) => math_output_value_low(unit),
+      output_value(63 downto 32) => math_output_value_high(unit)
       );
   end generate;
 
@@ -1465,9 +1465,8 @@ begin
       input_b => reg_math_config_drive(unit).source_b,
       input_value_number => math_input_number,
       input_value => math_input_value,
-      output_select => math_output_counter,
-      output_value(31 downto 0) => math_output_value_low,
-      output_value(63 downto 32) => math_output_value_high
+      output_value(31 downto 0) => math_output_value_low(unit),
+      output_value(63 downto 32) => math_output_value_high(unit)
       );
   end generate;
 
@@ -1480,9 +1479,8 @@ begin
       input_b => reg_math_config_drive(unit).source_b,
       input_value_number => math_input_number,
       input_value => math_input_value,
-      output_select => math_output_counter,
-      output_value(31 downto 0) => math_output_value_low,
-      output_value(63 downto 32) => math_output_value_high
+      output_value(31 downto 0) => math_output_value_low(unit),
+      output_value(63 downto 32) => math_output_value_high(unit)
       );
   end generate;
   
@@ -3749,24 +3747,24 @@ begin
               -- Only low output being kept
               report "MATH: Setting reg_math_regs(" & integer'image(reg_math_config(prev_math_output_counter).output)
                 & ") from output of math unit #" & integer'image(prev_math_output_counter)
-                & " ( = $" & to_hstring(math_output_value_low) & ")";
-              reg_math_regs(reg_math_config(prev_math_output_counter).output) <= math_output_value_low;
+                & " ( = $" & to_hstring(math_output_value_low(to_integer(the_read_address(3 downto 0)))) & ")";
+              reg_math_regs(reg_math_config(prev_math_output_counter).output) <= math_output_value_low(to_integer(the_read_address(3 downto 0)));
             end if;
           else
             if reg_math_config_drive(prev_math_output_counter).output_low = '0' then          
               -- Only high half of output is being kept, so stash it
               report "MATH: Setting reg_math_regs(" & integer'image(reg_math_config(prev_math_output_counter).output)
                 & ") from output of math unit #" & integer'image(prev_math_output_counter);
-              reg_math_regs(reg_math_config(prev_math_output_counter).output) <= math_output_value_high;
+              reg_math_regs(reg_math_config(prev_math_output_counter).output) <= math_output_value_high(to_integer(the_read_address(3 downto 0)));
             else
               -- Both are being stashed, so store in consecutive slots
               report "MATH: Setting reg_math_regs(" & integer'image(reg_math_config(prev_math_output_counter).output)
                 & ") (and next) from output of math unit #" & integer'image(prev_math_output_counter);
-              reg_math_regs(reg_math_config(prev_math_output_counter).output) <= math_output_value_low;
+              reg_math_regs(reg_math_config(prev_math_output_counter).output) <= math_output_value_low(to_integer(the_read_address(3 downto 0)));
               if reg_math_config_drive(prev_math_output_counter).output /= 15 then
-                reg_math_regs(reg_math_config_drive(prev_math_output_counter).output + 1) <= math_output_value_high;
+                reg_math_regs(reg_math_config_drive(prev_math_output_counter).output + 1) <= math_output_value_high(to_integer(the_read_address(3 downto 0)));
               else
-                reg_math_regs(0) <= math_output_value_high;
+                reg_math_regs(0) <= math_output_value_high(to_integer(the_read_address(3 downto 0)));
               end if;
             end if;
           end if;

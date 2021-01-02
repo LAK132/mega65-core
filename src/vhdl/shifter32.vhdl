@@ -36,7 +36,6 @@ entity shifter32 is
     input_b : in integer range 0 to 15;
     input_value_number : in integer range 0 to 15;
     input_value : unsigned(31 downto 0);
-    output_select : in integer range 0 to 15;
     output_value : out unsigned(63 downto 0)
     );
 end entity;
@@ -86,17 +85,12 @@ begin
         end if;
       end if;
 
-      -- Display output value when requested, and tri-state outputs otherwise
-      if output_select = unit then
-        if do_add='1' then
-          -- Output sign-extended 33 bit addition result
-          output_value(63 downto 33) <= (others => s(32));
-          output_value(32 downto 0) <= s;
-        else
-          output_value <= p;
-        end if;
+      if do_add='1' then
+        -- Output sign-extended 33 bit addition result
+        output_value(63 downto 33) <= (others => s(32));
+        output_value(32 downto 0) <= s;
       else
-        output_value <= (others => 'Z');
+        output_value <= p;
       end if;
     end if;
   end process;
