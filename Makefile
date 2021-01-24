@@ -1138,9 +1138,12 @@ $$(BINDIR)/$1.bit: $$(XILINXBINDIR)/$1.frames | $$(XC7FRAMES2BIT) $$(SDCARD_DIR)
 	$$(warning =============================================================)
 	$$(warning ~~~~~~~~~~~~~~~~> Making: $$@)
 	$$(shell bash -c "source $$(XRAYENV) && $$(XC7FRAMES2BIT) --part_file '$$(XRAYDBDIR)/$$($1_FPGA_FAMILY)/$$($1_FPGA_PART)/part.yaml' --part_name $$($1_FPGA_PART) --frm_file $$< --output_file $$@" )
+
+$1: $$(BINDIR)/$1.bit
 endef
 $(foreach B,$(XILINX_BOARDS),$(eval $(call XILINX_BOARD_BUILDER,$B)))
 # bin/nexys4.bit, bin/nexys4ddr.bit, bin/nexys4ddr-widget.bit, etc.
+# Invoke with `make nexys4`, `make nexys4ddr`, etc.
 
 endif
 
