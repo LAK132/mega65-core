@@ -2117,677 +2117,6 @@ begin
       end if;      
 
     end read_long_address;
-    
-    -- purpose: obtain the byte of memory that has been read
-    procedure read_data_complex is
-      variable value : unsigned(7 downto 0);
-    begin  -- read_data
-      -- CPU hosted IO registers
-      report "Read source is " & memory_source'image(read_source);
-      case read_source is
-        when DMAgicRegister =>
-          -- Actually, this is all of $D700-$D7FF decoded by the CPU at present
-          report "Reading CPU register (DMAgicRegister path)";
-          case the_read_address(7 downto 0) is
-            when x"00"|x"05" => read_data_copy <= reg_dmagic_addr(7 downto 0);
-            when x"01" => read_data_copy <= reg_dmagic_addr(15 downto 8);
-            when x"02" => read_data_copy <= reg_dmagic_withio
-                            & reg_dmagic_addr(22 downto 16);
-            when x"03" => read_data_copy <= reg_dmagic_status(7 downto 1) & support_f018b;
-            when x"04" => read_data_copy <= reg_dmagic_addr(27 downto 20);
-            when x"10" => read_data_copy <= "00" & badline_extra_cycles  & charge_for_branches_taken & vdc_enabled & slow_interrupts & badline_enable;
-            -- @IO:GS $D711.7 DMA:AUDEN Enable Audio DMA
-            -- @IO:GS $D711.6 DMA:BLKD Audio DMA blocked (read only) DEBUG
-            -- @IO:GS $D711.5 DMA:AUDWRBLK Audio DMA block writes (samples still get read) 
-            -- @IO:GS $D711.4 DMA:NOMIX Audio DMA bypasses audio mixer
-            -- @IO:GS $D711.3 AUDIO:PWMPDM PWM/PDM audio encoding select
-            -- @IO:GS $D711.0-2 DMA:AUDBLKTO Audio DMA block timeout (read only) DEBUG
-            when x"11" => read_data_copy <= audio_dma_enable & pending_dma_busy & audio_dma_disable_writes & cpu_pcm_bypass_int & pwm_mode_select_int & "000";
-                          
-            -- XXX DEBUG registers for audio DMA
-            when x"12" => read_data_copy <= audio_dma_left_saturated & audio_dma_right_saturated &
-                            "0000" & audio_dma_swap & audio_dma_saturation_enable;
-
-            -- @IO:GS $D71C DMA:CH0RVOL Audio DMA channel 0 right channel volume
-            -- @IO:GS $D71D DMA:CH1RVOL Audio DMA channel 1 right channel volume
-            -- @IO:GS $D71E DMA:CH2LVOL Audio DMA channel 2 left channel volume
-            -- @IO:GS $D71F DMA:CH3LVOL Audio DMA channel 3 left channel volume
-            when x"1c" => read_data_copy <= audio_dma_pan_volume(0)(7 downto 0);
-            when x"1d" => read_data_copy <= audio_dma_pan_volume(1)(7 downto 0);
-            when x"1e" => read_data_copy <= audio_dma_pan_volume(2)(7 downto 0);
-            when x"1f" => read_data_copy <= audio_dma_pan_volume(3)(7 downto 0);
-
-            -- @IO:GS $D720.7 DMA:CH0EN Enable Audio DMA channel 0
-            -- @IO:GS $D720.6 DMA:CH0LOOP Enable Audio DMA channel 0 looping
-            -- @IO:GS $D720.5 DMA:CH0SGN Enable Audio DMA channel 0 signed samples
-            -- @IO:GS $D720.4 DMA:CH0SINE Audio DMA channel 0 play 32-sample sine wave instead of DMA data
-            -- @IO:GS $D720.3 DMA:CH0STP Audio DMA channel 0 stop flag
-            -- @IO:GS $D720.0-1 DMA:CH0SBITS Audio DMA channel 0 sample bits (11=16, 10=8, 01=upper nybl, 00=lower nybl)
-            -- @IO:GS $D721 DMA:CH0BADDR Audio DMA channel 0 base address LSB
-            -- @IO:GS $D722 DMA:CH0BADDR Audio DMA channel 0 base address middle byte
-            -- @IO:GS $D723 DMA:CH0BADDR Audio DMA channel 0 base address MSB
-            -- @IO:GS $D724 DMA:CH0FREQ Audio DMA channel 0 frequency LSB
-            -- @IO:GS $D725 DMA:CH0FREQ Audio DMA channel 0 frequency middle byte
-            -- @IO:GS $D726 DMA:CH0FREQ Audio DMA channel 0 frequency MSB
-            -- @IO:GS $D727 DMA:CH0TADDR Audio DMA channel 0 top address LSB
-            -- @IO:GS $D728 DMA:CH0TADDR Audio DMA channel 0 top address middle byte
-            -- @IO:GS $D729 DMA:CH0VOLUME Audio DMA channel 0 playback volume
-            -- @IO:GS $D72A DMA:CH0FREQ Audio DMA channel 0 current address LSB
-            -- @IO:GS $D72B DMA:CH0FREQ Audio DMA channel 0 current address middle byte
-            -- @IO:GS $D72C DMA:CH0FREQ Audio DMA channel 0 current address MSB
-            -- @IO:GS $D72D DMA:CH0FREQ Audio DMA channel 0 timing counter LSB
-            -- @IO:GS $D72E DMA:CH0FREQ Audio DMA channel 0 timing counter middle byte
-            -- @IO:GS $D72F DMA:CH0FREQ Audio DMA channel 0 timing counter address MSB
-
-            -- @IO:GS $D730.7 DMA:CH1EN Enable Audio DMA channel 1
-            -- @IO:GS $D730.6 DMA:CH1LOOP Enable Audio DMA channel 1 looping
-            -- @IO:GS $D730.5 DMA:CH1SGN Enable Audio DMA channel 1 signed samples
-            -- @IO:GS $D730.4 DMA:CH1SINE Audio DMA channel 1 play 32-sample sine wave instead of DMA data
-            -- @IO:GS $D730.3 DMA:CH1STP Audio DMA channel 1 stop flag
-            -- @IO:GS $D730.0-1 DMA:CH1SBITS Audio DMA channel 1 sample bits (11=16, 10=8, 01=upper nybl, 00=lower nybl)
-            -- @IO:GS $D731 DMA:CH1BADDR Audio DMA channel 1 base address LSB
-            -- @IO:GS $D732 DMA:CH1BADDR Audio DMA channel 1 base address middle byte
-            -- @IO:GS $D733 DMA:CH1BADDR Audio DMA channel 1 base address MSB
-            -- @IO:GS $D734 DMA:CH1FREQ Audio DMA channel 1 frequency LSB
-            -- @IO:GS $D735 DMA:CH1FREQ Audio DMA channel 1 frequency middle byte
-            -- @IO:GS $D736 DMA:CH1FREQ Audio DMA channel 1 frequency MSB
-            -- @IO:GS $D737 DMA:CH1TADDR Audio DMA channel 1 top address LSB
-            -- @IO:GS $D738 DMA:CH1TADDR Audio DMA channel 1 top address middle byte
-            -- @IO:GS $D739 DMA:CH1VOLUME Audio DMA channel 1 playback volume
-            -- @IO:GS $D73A DMA:CH1FREQ Audio DMA channel 1 current address LSB
-            -- @IO:GS $D73B DMA:CH1FREQ Audio DMA channel 1 current address middle byte
-            -- @IO:GS $D73C DMA:CH1FREQ Audio DMA channel 1 current address MSB
-            -- @IO:GS $D73D DMA:CH1FREQ Audio DMA channel 1 timing counter LSB
-            -- @IO:GS $D73E DMA:CH1FREQ Audio DMA channel 1 timing counter middle byte
-            -- @IO:GS $D73F DMA:CH1FREQ Audio DMA channel 1 timing counter address MSB
-
-            -- @IO:GS $D740.7 DMA:CH2EN Enable Audio DMA channel 2
-            -- @IO:GS $D740.6 DMA:CH2LOOP Enable Audio DMA channel 2 looping
-            -- @IO:GS $D740.5 DMA:CH2SGN Enable Audio DMA channel 2 signed samples
-            -- @IO:GS $D740.4 DMA:CH2SINE Audio DMA channel 2 play 32-sample sine wave instead of DMA data
-            -- @IO:GS $D740.3 DMA:CH2STP Audio DMA channel 2 stop flag
-            -- @IO:GS $D740.0-1 DMA:CH1SBITS Audio DMA channel 1 sample bits (11=16, 10=8, 01=upper nybl, 00=lower nybl)
-            -- @IO:GS $D741 DMA:CH2BADDR Audio DMA channel 2 base address LSB
-            -- @IO:GS $D742 DMA:CH2BADDR Audio DMA channel 2 base address middle byte
-            -- @IO:GS $D743 DMA:CH2BADDR Audio DMA channel 2 base address MSB
-            -- @IO:GS $D744 DMA:CH2FREQ Audio DMA channel 2 frequency LSB
-            -- @IO:GS $D745 DMA:CH2FREQ Audio DMA channel 2 frequency middle byte
-            -- @IO:GS $D746 DMA:CH2FREQ Audio DMA channel 2 frequency MSB
-            -- @IO:GS $D747 DMA:CH2TADDR Audio DMA channel 2 top address LSB
-            -- @IO:GS $D748 DMA:CH2TADDR Audio DMA channel 2 top address middle byte
-            -- @IO:GS $D749 DMA:CH2VOLUME Audio DMA channel 2 playback volume
-            -- @IO:GS $D74A DMA:CH2FREQ Audio DMA channel 2 current address LSB
-            -- @IO:GS $D74B DMA:CH2FREQ Audio DMA channel 2 current address middle byte
-            -- @IO:GS $D74C DMA:CH2FREQ Audio DMA channel 2 current address MSB
-            -- @IO:GS $D74D DMA:CH2FREQ Audio DMA channel 2 timing counter LSB
-            -- @IO:GS $D74E DMA:CH2FREQ Audio DMA channel 2 timing counter middle byte
-            -- @IO:GS $D74F DMA:CH2FREQ Audio DMA channel 2 timing counter address MSB
-                          
-            -- @IO:GS $D750.7 DMA:CH3EN Enable Audio DMA channel 3
-            -- @IO:GS $D750.6 DMA:CH3LOOP Enable Audio DMA channel 3 looping
-            -- @IO:GS $D750.5 DMA:CH3SGN Enable Audio DMA channel 3 signed samples
-            -- @IO:GS $D750.4 DMA:CH3SINE Audio DMA channel 3 play 32-sample sine wave instead of DMA data
-            -- @IO:GS $D750.3 DMA:CH3STP Audio DMA channel 3 stop flag
-            -- @IO:GS $D750.0-1 DMA:CH3SBITS Audio DMA channel 3 sample bits (11=16, 10=8, 01=upper nybl, 00=lower nybl)
-            -- @IO:GS $D751 DMA:CH3BADDR Audio DMA channel 3 base address LSB
-            -- @IO:GS $D752 DMA:CH3BADDR Audio DMA channel 3 base address middle byte
-            -- @IO:GS $D753 DMA:CH3BADDR Audio DMA channel 3 base address MSB
-            -- @IO:GS $D754 DMA:CH3FREQ Audio DMA channel 3 frequency LSB
-            -- @IO:GS $D755 DMA:CH3FREQ Audio DMA channel 3 frequency middle byte
-            -- @IO:GS $D756 DMA:CH3FREQ Audio DMA channel 3 frequency MSB
-            -- @IO:GS $D757 DMA:CH3TADDR Audio DMA channel 3 top address LSB
-            -- @IO:GS $D758 DMA:CH3TADDR Audio DMA channel 3 top address middle byte
-            -- @IO:GS $D759 DMA:CH3VOLUME Audio DMA channel 3 playback volume
-            -- @IO:GS $D75A DMA:CH3FREQ Audio DMA channel 3 current address LSB
-            -- @IO:GS $D75B DMA:CH3FREQ Audio DMA channel 3 current address middle byte
-            -- @IO:GS $D75C DMA:CH3FREQ Audio DMA channel 3 current address MSB
-            -- @IO:GS $D75D DMA:CH3FREQ Audio DMA channel 3 timing counter LSB
-            -- @IO:GS $D75E DMA:CH3FREQ Audio DMA channel 3 timing counter middle byte
-            -- @IO:GS $D75F DMA:CH3FREQ Audio DMA channel 3 timing counter address MSB
-
-                          
-            -- $D720-$D72F - Audio DMA channel 0                          
-            when x"20" => read_data_copy <= audio_dma_enables(0) & audio_dma_repeat(0) & audio_dma_signed(0) &
-                            audio_dma_sine_wave(0) & audio_dma_stop(0) & audio_dma_sample_valid(0) & audio_dma_sample_width(0);
-            when x"21" => read_data_copy <= audio_dma_base_addr(0)(7 downto 0);
-            when x"22" => read_data_copy <= audio_dma_base_addr(0)(15 downto 8);
-            when x"23" => read_data_copy <= audio_dma_base_addr(0)(23 downto 16);
-            when x"24" => read_data_copy <= audio_dma_time_base(0)(7 downto 0);
-            when x"25" => read_data_copy <= audio_dma_time_base(0)(15 downto 8);
-            when x"26" => read_data_copy <= audio_dma_time_base(0)(23 downto 16);
-            when x"27" => read_data_copy <= audio_dma_top_addr(0)(7 downto 0);
-            when x"28" => read_data_copy <= audio_dma_top_addr(0)(15 downto 8);
-            when x"29" => read_data_copy <= audio_dma_volume(0)(7 downto 0);
-            when x"2a" => read_data_copy <= audio_dma_current_addr(0)(7 downto 0);
-            when x"2b" => read_data_copy <= audio_dma_current_addr(0)(15 downto 8);
-            when x"2c" => read_data_copy <= audio_dma_current_addr(0)(23 downto 16);
-            when x"2d" => read_data_copy <= audio_dma_timing_counter(0)(7 downto 0);
-            when x"2e" => read_data_copy <= audio_dma_timing_counter(0)(15 downto 8);
-            when x"2f" => read_data_copy <= audio_dma_timing_counter(0)(23 downto 16);
-            -- $D730-$D73F - Audio DMA channel 1
-            when x"30" => read_data_copy <= audio_dma_enables(1) & audio_dma_repeat(1) & audio_dma_signed(1) &
-                            audio_dma_sine_wave(1) & audio_dma_stop(1) & audio_dma_sample_valid(1) & audio_dma_sample_width(1);
-            when x"31" => read_data_copy <= audio_dma_base_addr(1)(7 downto 0);
-            when x"32" => read_data_copy <= audio_dma_base_addr(1)(15 downto 8);
-            when x"33" => read_data_copy <= audio_dma_base_addr(1)(23 downto 16);
-            when x"34" => read_data_copy <= audio_dma_time_base(1)(7 downto 0);
-            when x"35" => read_data_copy <= audio_dma_time_base(1)(15 downto 8);
-            when x"36" => read_data_copy <= audio_dma_time_base(1)(23 downto 16);
-            when x"37" => read_data_copy <= audio_dma_top_addr(1)(7 downto 0);
-            when x"38" => read_data_copy <= audio_dma_top_addr(1)(15 downto 8);
-            when x"39" => read_data_copy <= audio_dma_volume(1)(7 downto 0);
-            when x"3a" => read_data_copy <= audio_dma_current_addr(1)(7 downto 0);
-            when x"3b" => read_data_copy <= audio_dma_current_addr(1)(15 downto 8);
-            when x"3c" => read_data_copy <= audio_dma_current_addr(1)(23 downto 16);
-            when x"3d" => read_data_copy <= audio_dma_timing_counter(1)(7 downto 0);
-            when x"3e" => read_data_copy <= audio_dma_timing_counter(1)(15 downto 8);
-            when x"3f" => read_data_copy <= audio_dma_timing_counter(1)(23 downto 16);
-                                        -- $D740-$D74F - Audio DMA channel 2
-            when x"40" => read_data_copy <= audio_dma_enables(2) & audio_dma_repeat(2) & audio_dma_signed(2) &
-                            audio_dma_sine_wave(2) & audio_dma_stop(2) & audio_dma_sample_valid(2) & audio_dma_sample_width(2);
-            when x"41" => read_data_copy <= audio_dma_base_addr(2)(7 downto 0);
-            when x"42" => read_data_copy <= audio_dma_base_addr(2)(15 downto 8);
-            when x"43" => read_data_copy <= audio_dma_base_addr(2)(23 downto 16);
-            when x"44" => read_data_copy <= audio_dma_time_base(2)(7 downto 0);
-            when x"45" => read_data_copy <= audio_dma_time_base(2)(15 downto 8);
-            when x"46" => read_data_copy <= audio_dma_time_base(2)(23 downto 16);
-            when x"47" => read_data_copy <= audio_dma_top_addr(2)(7 downto 0);
-            when x"48" => read_data_copy <= audio_dma_top_addr(2)(15 downto 8);
-            when x"49" => read_data_copy <= audio_dma_volume(2)(7 downto 0);
-            when x"4a" => read_data_copy <= audio_dma_current_addr(2)(7 downto 0);
-            when x"4b" => read_data_copy <= audio_dma_current_addr(2)(15 downto 8);
-            when x"4c" => read_data_copy <= audio_dma_current_addr(2)(23 downto 16);
-            when x"4d" => read_data_copy <= audio_dma_timing_counter(2)(7 downto 0);
-            when x"4e" => read_data_copy <= audio_dma_timing_counter(2)(15 downto 8);
-            when x"4f" => read_data_copy <= audio_dma_timing_counter(2)(23 downto 16);
-            -- $D750-$D75F - Audio DMA channel 3
-            when x"50" => read_data_copy <= audio_dma_enables(3) & audio_dma_repeat(3) & audio_dma_signed(3) &
-                            audio_dma_sine_wave(3) & audio_dma_stop(3) & audio_dma_sample_valid(3) & audio_dma_sample_width(3);
-            when x"51" => read_data_copy <= audio_dma_base_addr(3)(7 downto 0);
-            when x"52" => read_data_copy <= audio_dma_base_addr(3)(15 downto 8);
-            when x"53" => read_data_copy <= audio_dma_base_addr(3)(23 downto 16);
-            when x"54" => read_data_copy <= audio_dma_time_base(3)(7 downto 0);
-            when x"55" => read_data_copy <= audio_dma_time_base(3)(15 downto 8);
-            when x"56" => read_data_copy <= audio_dma_time_base(3)(23 downto 16);
-            when x"57" => read_data_copy <= audio_dma_top_addr(3)(7 downto 0);
-            when x"58" => read_data_copy <= audio_dma_top_addr(3)(15 downto 8);
-            when x"59" => read_data_copy <= audio_dma_volume(3)(7 downto 0);
-            when x"5a" => read_data_copy <= audio_dma_current_addr(3)(7 downto 0);
-            when x"5b" => read_data_copy <= audio_dma_current_addr(3)(15 downto 8);
-            when x"5c" => read_data_copy <= audio_dma_current_addr(3)(23 downto 16);
-            when x"5d" => read_data_copy <= audio_dma_timing_counter(3)(7 downto 0);
-            when x"5e" => read_data_copy <= audio_dma_timing_counter(3)(15 downto 8);
-            when x"5f" => read_data_copy <= audio_dma_timing_counter(3)(23 downto 16);
-
-                                             
-            -- $D760-$D7DF reserved for math unit functions
-            when x"68" => read_data_copy <= div_q(7 downto 0);
-            when x"69" => read_data_copy <= div_q(15 downto 8);
-            when x"6a" => read_data_copy <= div_q(23 downto 16);
-            when x"6b" => read_data_copy <= div_q(31 downto 24);
-            when x"6c" => read_data_copy <= div_q(39 downto 32);
-            when x"6d" => read_data_copy <= div_q(47 downto 40);
-            when x"6e" => read_data_copy <= div_q(55 downto 48);
-            when x"6f" => read_data_copy <= div_q(63 downto 56);
-            when x"70" => read_data_copy <= reg_mult_a(7 downto 0);
-            when x"71" => read_data_copy <= reg_mult_a(15 downto 8);
-            when x"72" => read_data_copy <= reg_mult_a(23 downto 16);
-            when x"73" => read_data_copy <= reg_mult_a(31 downto 24);
-            when x"74" => read_data_copy <= reg_mult_b(7 downto 0);
-            when x"75" => read_data_copy <= reg_mult_b(15 downto 8);
-            when x"76" => read_data_copy <= reg_mult_b(23 downto 16);
-            when x"77" => read_data_copy <= reg_mult_b(31 downto 24);
-            -- @IO:GS $D768 MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
-            -- @IO:GS $D769 MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
-            -- @IO:GS $D76A MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
-            -- @IO:GS $D76B MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
-            -- @IO:GS $D76C MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
-            -- @IO:GS $D76D MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
-            -- @IO:GS $D76E MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
-            -- @IO:GS $D76F MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
-            -- @IO:GS $D770 MATH:MULTINA Multiplier input A / Divider numerator (32 bit)
-            -- @IO:GS $D771 MATH:MULTINA Multiplier input A / Divider numerator (32 bit)
-            -- @IO:GS $D772 MATH:MULTINA Multiplier input A / Divider numerator (32 bit)
-            -- @IO:GS $D773 MATH:MULTINA Multiplier input A / Divider numerator (32 bit)
-            -- @IO:GS $D774 MATH:MULTINB Multiplier input B / Divider denominator (32 bit)
-            -- @IO:GS $D775 MATH:MULTINB Multiplier input B / Divider denominator (32 bit)
-            -- @IO:GS $D776 MATH:MULTINB Multiplier input B / Divider denominator (32 bit)
-            -- @IO:GS $D777 MATH:MULTINB Multiplier input B / Divider denominator (32 bit)
-            -- @IO:GS $D778 MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
-            -- @IO:GS $D779 MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
-            -- @IO:GS $D77A MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
-            -- @IO:GS $D77B MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
-            -- @IO:GS $D77C MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
-            -- @IO:GS $D77D MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
-            -- @IO:GS $D77E MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
-            -- @IO:GS $D77F MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
-
-            when x"78" => read_data_copy <= reg_mult_p(7 downto 0);
-            when x"79" => read_data_copy <= reg_mult_p(15 downto 8);
-            when x"7a" => read_data_copy <= reg_mult_p(23 downto 16);
-            when x"7b" => read_data_copy <= reg_mult_p(31 downto 24);
-            when x"7c" => read_data_copy <= reg_mult_p(39 downto 32);
-            when x"7d" => read_data_copy <= reg_mult_p(47 downto 40);
-            when x"7e" => read_data_copy <= reg_mult_p(55 downto 48);
-            when x"7f" => read_data_copy <= reg_mult_p(63 downto 56);
-            -- @IO:GS $D780-$D7BF - 16 x 32 bit Math Unit values
-            -- @IO:GS $D780 MATH:MATHIN0 Math unit 32-bit input 0
-            -- @IO:GS $D781 MATH:MATHIN0 Math unit 32-bit input 0
-            -- @IO:GS $D782 MATH:MATHIN0 Math unit 32-bit input 0
-            -- @IO:GS $D783 MATH:MATHIN0 Math unit 32-bit input 0
-            -- @IO:GS $D784 MATH:MATHIN1 Math unit 32-bit input 1
-            -- @IO:GS $D785 MATH:MATHIN1 Math unit 32-bit input 1
-            -- @IO:GS $D786 MATH:MATHIN1 Math unit 32-bit input 1
-            -- @IO:GS $D787 MATH:MATHIN1 Math unit 32-bit input 1
-            -- @IO:GS $D788 MATH:MATHIN2 Math unit 32-bit input 2
-            -- @IO:GS $D789 MATH:MATHIN2 Math unit 32-bit input 2
-            -- @IO:GS $D78A MATH:MATHIN2 Math unit 32-bit input 2
-            -- @IO:GS $D78B MATH:MATHIN2 Math unit 32-bit input 2
-            -- @IO:GS $D78C MATH:MATHIN3 Math unit 32-bit input 3
-            -- @IO:GS $D78D MATH:MATHIN3 Math unit 32-bit input 3
-            -- @IO:GS $D78E MATH:MATHIN3 Math unit 32-bit input 3
-            -- @IO:GS $D78F MATH:MATHIN3 Math unit 32-bit input 3
-            -- @IO:GS $D790 MATH:MATHIN4 Math unit 32-bit input 4
-            -- @IO:GS $D791 MATH:MATHIN4 Math unit 32-bit input 4
-            -- @IO:GS $D792 MATH:MATHIN4 Math unit 32-bit input 4
-            -- @IO:GS $D793 MATH:MATHIN4 Math unit 32-bit input 4
-            -- @IO:GS $D794 MATH:MATHIN5 Math unit 32-bit input 5
-            -- @IO:GS $D795 MATH:MATHIN5 Math unit 32-bit input 5
-            -- @IO:GS $D796 MATH:MATHIN5 Math unit 32-bit input 5
-            -- @IO:GS $D797 MATH:MATHIN5 Math unit 32-bit input 5
-            -- @IO:GS $D798 MATH:MATHIN6 Math unit 32-bit input 6
-            -- @IO:GS $D799 MATH:MATHIN6 Math unit 32-bit input 6
-            -- @IO:GS $D79A MATH:MATHIN6 Math unit 32-bit input 6
-            -- @IO:GS $D79B MATH:MATHIN6 Math unit 32-bit input 6
-            -- @IO:GS $D79C MATH:MATHIN7 Math unit 32-bit input 7
-            -- @IO:GS $D79D MATH:MATHIN7 Math unit 32-bit input 7
-            -- @IO:GS $D79E MATH:MATHIN7 Math unit 32-bit input 7
-            -- @IO:GS $D79F MATH:MATHIN7 Math unit 32-bit input 7
-            -- @IO:GS $D7A0 MATH:MATHIN8 Math unit 32-bit input 8
-            -- @IO:GS $D7A1 MATH:MATHIN8 Math unit 32-bit input 8
-            -- @IO:GS $D7A2 MATH:MATHIN8 Math unit 32-bit input 8
-            -- @IO:GS $D7A3 MATH:MATHIN8 Math unit 32-bit input 8
-            -- @IO:GS $D7A4 MATH:MATHIN9 Math unit 32-bit input 9
-            -- @IO:GS $D7A5 MATH:MATHIN9 Math unit 32-bit input 9
-            -- @IO:GS $D7A6 MATH:MATHIN9 Math unit 32-bit input 9
-            -- @IO:GS $D7A7 MATH:MATHIN9 Math unit 32-bit input 9
-            -- @IO:GS $D7A8 MATH:MATHIN10 Math unit 32-bit input 10
-            -- @IO:GS $D7A9 MATH:MATHIN10 Math unit 32-bit input 10
-            -- @IO:GS $D7AA MATH:MATHIN10 Math unit 32-bit input 10
-            -- @IO:GS $D7AB MATH:MATHIN10 Math unit 32-bit input 10
-            -- @IO:GS $D7AC MATH:MATHIN11 Math unit 32-bit input 11
-            -- @IO:GS $D7AD MATH:MATHIN11 Math unit 32-bit input 11
-            -- @IO:GS $D7AE MATH:MATHIN11 Math unit 32-bit input 11
-            -- @IO:GS $D7AF MATH:MATHIN11 Math unit 32-bit input 11
-            -- @IO:GS $D7B0 MATH:MATHIN12 Math unit 32-bit input 12
-            -- @IO:GS $D7B1 MATH:MATHIN12 Math unit 32-bit input 12
-            -- @IO:GS $D7B2 MATH:MATHIN12 Math unit 32-bit input 12
-            -- @IO:GS $D7B3 MATH:MATHIN12 Math unit 32-bit input 12
-            -- @IO:GS $D7B4 MATH:MATHIN13 Math unit 32-bit input 13
-            -- @IO:GS $D7B5 MATH:MATHIN13 Math unit 32-bit input 13
-            -- @IO:GS $D7B6 MATH:MATHIN13 Math unit 32-bit input 13
-            -- @IO:GS $D7B7 MATH:MATHIN13 Math unit 32-bit input 13
-            -- @IO:GS $D7B8 MATH:MATHIN14 Math unit 32-bit input 14
-            -- @IO:GS $D7B9 MATH:MATHIN14 Math unit 32-bit input 14
-            -- @IO:GS $D7BA MATH:MATHIN14 Math unit 32-bit input 14
-            -- @IO:GS $D7BB MATH:MATHIN14 Math unit 32-bit input 14
-            -- @IO:GS $D7BC MATH:MATHIN15 Math unit 32-bit input 15
-            -- @IO:GS $D7BD MATH:MATHIN15 Math unit 32-bit input 15
-            -- @IO:GS $D7BE MATH:MATHIN15 Math unit 32-bit input 15
-            -- @IO:GS $D7BF MATH:MATHIN15 Math unit 32-bit input 15
-            when
-              x"80"|x"81"|x"82"|x"83"|x"84"|x"85"|x"86"|x"87"|
-              x"88"|x"89"|x"8A"|x"8B"|x"8C"|x"8D"|x"8E"|x"8F"|
-              x"90"|x"91"|x"92"|x"93"|x"94"|x"95"|x"96"|x"97"|
-              x"98"|x"99"|x"9A"|x"9B"|x"9C"|x"9D"|x"9E"|x"9F"|
-              x"A0"|x"A1"|x"A2"|x"A3"|x"A4"|x"A5"|x"A6"|x"A7"|
-              x"A8"|x"A9"|x"AA"|x"AB"|x"AC"|x"AD"|x"AE"|x"AF"|
-              x"B0"|x"B1"|x"B2"|x"B3"|x"B4"|x"B5"|x"B6"|x"B7"|
-              x"B8"|x"B9"|x"BA"|x"BB"|x"BC"|x"BD"|x"BE"|x"BF" =>
-              case the_read_address(1 downto 0) is
-                when "00" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(7 downto 0);              
-                when "01" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(15 downto 8);
-                when "10" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(23 downto 16);
-                when "11" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(31 downto 24);
-                when others => read_data_copy <= x"59";
-              end case;
-            when
-              --@IO:GS $D7C0-$D7CF - 16 Math function unit input A (3-0) and input B (7-4) selects
-              -- @IO:GS $D7C0.0-3 MATH:UNIT0INA Select which of the 16 32-bit math registers is input A for Math Function Unit 0.
-              -- @IO:GS $D7C0.4-7 MATH:UNIT0INB Select which of the 16 32-bit math registers is input B for Math Function Unit 0.
-              -- @IO:GS $D7C1.0-3 MATH:UNIT1INA Select which of the 16 32-bit math registers is input A for Math Function Unit 1.
-              -- @IO:GS $D7C1.4-7 MATH:UNIT1INB Select which of the 16 32-bit math registers is input B for Math Function Unit 1.
-              -- @IO:GS $D7C2.0-3 MATH:UNIT2INA Select which of the 16 32-bit math registers is input A for Math Function Unit 2.
-              -- @IO:GS $D7C2.4-7 MATH:UNIT2INB Select which of the 16 32-bit math registers is input B for Math Function Unit 2.
-              -- @IO:GS $D7C3.0-3 MATH:UNIT3INA Select which of the 16 32-bit math registers is input A for Math Function Unit 3.
-              -- @IO:GS $D7C3.4-7 MATH:UNIT3INB Select which of the 16 32-bit math registers is input B for Math Function Unit 3.
-              -- @IO:GS $D7C4.0-3 MATH:UNIT4INA Select which of the 16 32-bit math registers is input A for Math Function Unit 4.
-              -- @IO:GS $D7C4.4-7 MATH:UNIT4INB Select which of the 16 32-bit math registers is input B for Math Function Unit 4.
-              -- @IO:GS $D7C5.0-3 MATH:UNIT5INA Select which of the 16 32-bit math registers is input A for Math Function Unit 5.
-              -- @IO:GS $D7C5.4-7 MATH:UNIT5INB Select which of the 16 32-bit math registers is input B for Math Function Unit 5.
-              -- @IO:GS $D7C6.0-3 MATH:UNIT6INA Select which of the 16 32-bit math registers is input A for Math Function Unit 6.
-              -- @IO:GS $D7C6.4-7 MATH:UNIT6INB Select which of the 16 32-bit math registers is input B for Math Function Unit 6.
-              -- @IO:GS $D7C7.0-3 MATH:UNIT7INA Select which of the 16 32-bit math registers is input A for Math Function Unit 7.
-              -- @IO:GS $D7C7.4-7 MATH:UNIT7INB Select which of the 16 32-bit math registers is input B for Math Function Unit 7.
-              -- @IO:GS $D7C8.0-3 MATH:UNIT8INA Select which of the 16 32-bit math registers is input A for Math Function Unit 8.
-              -- @IO:GS $D7C8.4-7 MATH:UNIT8INB Select which of the 16 32-bit math registers is input B for Math Function Unit 8.
-              -- @IO:GS $D7C9.0-3 MATH:UNIT9INA Select which of the 16 32-bit math registers is input A for Math Function Unit 9.
-              -- @IO:GS $D7C9.4-7 MATH:UNIT9INB Select which of the 16 32-bit math registers is input B for Math Function Unit 9.
-              -- @IO:GS $D7CA.0-3 MATH:UNIT10INA Select which of the 16 32-bit math registers is input A for Math Function Unit 10.
-              -- @IO:GS $D7CA.4-7 MATH:UNIT10INB Select which of the 16 32-bit math registers is input B for Math Function Unit 10.
-              -- @IO:GS $D7CB.0-3 MATH:UNIT11INA Select which of the 16 32-bit math registers is input A for Math Function Unit 11.
-              -- @IO:GS $D7CB.4-7 MATH:UNIT11INB Select which of the 16 32-bit math registers is input B for Math Function Unit 11.
-              -- @IO:GS $D7CC.0-3 MATH:UNIT12INA Select which of the 16 32-bit math registers is input A for Math Function Unit 12.
-              -- @IO:GS $D7CC.4-7 MATH:UNIT12INB Select which of the 16 32-bit math registers is input B for Math Function Unit 12.
-              -- @IO:GS $D7CD.0-3 MATH:UNIT13INA Select which of the 16 32-bit math registers is input A for Math Function Unit 13.
-              -- @IO:GS $D7CD.4-7 MATH:UNIT13INB Select which of the 16 32-bit math registers is input B for Math Function Unit 13.
-              -- @IO:GS $D7CE.0-3 MATH:UNIT14INA Select which of the 16 32-bit math registers is input A for Math Function Unit 14.
-              -- @IO:GS $D7CE.4-7 MATH:UNIT14INB Select which of the 16 32-bit math registers is input B for Math Function Unit 14.
-              -- @IO:GS $D7CF.0-3 MATH:UNIT15INA Select which of the 16 32-bit math registers is input A for Math Function Unit 15.
-              -- @IO:GS $D7CF.4-7 MATH:UNIT15INB Select which of the 16 32-bit math registers is input B for Math Function Unit 15.
-              x"C0"|x"C1"|x"C2"|x"C3"|x"C4"|x"C5"|x"C6"|x"C7"|
-              x"C8"|x"C9"|x"CA"|x"CB"|x"CC"|x"CD"|x"CE"|x"CF" =>
-              read_data_copy <=
-                to_unsigned(reg_math_config(to_integer(the_read_address(3 downto 0))).source_b,4)
-                &to_unsigned(reg_math_config(to_integer(the_read_address(3 downto 0))).source_a,4);
-            when
-              -- @IO:GS $D7D0.0-3 MATH:UNIT0OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 0
-              -- @IO:GS $D7D0.4 - MATH:U0LOWOUT If set, the low-half of the output of Math Function Unit 0 is written to math register UNIT0OUT.
-              -- @IO:GS $D7D0.5 - MATH:U0HIOUT If set, the high-half of the output of Math Function Unit 0 is written to math register UNIT0OUT.
-              -- @IO:GS $D7D0.6 - MATH:U0ADD If set, Math Function Unit 0 acts as a 32-bit adder instead of 32-bit multiplier.
-              -- @IO:GS $D7D0.7 - MATH:U0LATCH If set, Math Function Unit 0's output is latched.
-              
-              -- @IO:GS $D7D1.0-3 MATH:UNIT1OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 1
-              -- @IO:GS $D7D1.4 - MATH:U1LOWOUT If set, the low-half of the output of Math Function Unit 1 is written to math register UNIT1OUT.
-              -- @IO:GS $D7D1.5 - MATH:U1HIOUT If set, the high-half of the output of Math Function Unit 1 is written to math register UNIT1OUT.
-              -- @IO:GS $D7D1.6 - MATH:U1ADD If set, Math Function Unit 1 acts as a 32-bit adder instead of 32-bit multiplier.
-              -- @IO:GS $D7D1.7 - MATH:U1LATCH If set, Math Function Unit 1's output is latched.
-              
-              -- @IO:GS $D7D2.0-3 MATH:UNIT2OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 2
-              -- @IO:GS $D7D2.4 - MATH:U2LOWOUT If set, the low-half of the output of Math Function Unit 2 is written to math register UNIT2OUT.
-              -- @IO:GS $D7D2.5 - MATH:U2HIOUT If set, the high-half of the output of Math Function Unit 2 is written to math register UNIT2OUT.
-              -- @IO:GS $D7D2.6 - MATH:U2ADD If set, Math Function Unit 2 acts as a 32-bit adder instead of 32-bit multiplier.
-              -- @IO:GS $D7D2.7 - MATH:U2LATCH If set, Math Function Unit 2's output is latched.
-              
-              -- @IO:GS $D7D3.0-3 MATH:UNIT3OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 3
-              -- @IO:GS $D7D3.4 - MATH:U3LOWOUT If set, the low-half of the output of Math Function Unit 3 is written to math register UNIT3OUT.
-              -- @IO:GS $D7D3.5 - MATH:U3HIOUT If set, the high-half of the output of Math Function Unit 3 is written to math register UNIT3OUT.
-              -- @IO:GS $D7D3.6 - MATH:U3ADD If set, Math Function Unit 3 acts as a 32-bit adder instead of 32-bit multiplier.
-              -- @IO:GS $D7D3.7 - MATH:U3LATCH If set, Math Function Unit 3's output is latched.
-              
-              -- @IO:GS $D7D4.0-3 MATH:UNIT4OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 4
-              -- @IO:GS $D7D4.4 - MATH:U4LOWOUT If set, the low-half of the output of Math Function Unit 4 is written to math register UNIT4OUT.
-              -- @IO:GS $D7D4.5 - MATH:U4HIOUT If set, the high-half of the output of Math Function Unit 4 is written to math register UNIT4OUT.
-              -- @IO:GS $D7D4.6 - MATH:U4ADD If set, Math Function Unit 4 acts as a 32-bit adder instead of 32-bit multiplier.
-              -- @IO:GS $D7D4.7 - MATH:U4LATCH If set, Math Function Unit 4's output is latched.
-              
-              -- @IO:GS $D7D5.0-3 MATH:UNIT5OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 5
-              -- @IO:GS $D7D5.4 - MATH:U5LOWOUT If set, the low-half of the output of Math Function Unit 5 is written to math register UNIT5OUT.
-              -- @IO:GS $D7D5.5 - MATH:U5HIOUT If set, the high-half of the output of Math Function Unit 5 is written to math register UNIT5OUT.
-              -- @IO:GS $D7D5.6 - MATH:U5ADD If set, Math Function Unit 5 acts as a 32-bit adder instead of 32-bit multiplier.
-              -- @IO:GS $D7D5.7 - MATH:U5LATCH If set, Math Function Unit 5's output is latched.
-              
-              -- @IO:GS $D7D6.0-3 MATH:UNIT6OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 6
-              -- @IO:GS $D7D6.4 - MATH:U6LOWOUT If set, the low-half of the output of Math Function Unit 6 is written to math register UNIT6OUT.
-              -- @IO:GS $D7D6.5 - MATH:U6HIOUT If set, the high-half of the output of Math Function Unit 6 is written to math register UNIT6OUT.
-              -- @IO:GS $D7D6.6 - MATH:U6ADD If set, Math Function Unit 6 acts as a 32-bit adder instead of 32-bit multiplier.
-              -- @IO:GS $D7D6.7 - MATH:U6LATCH If set, Math Function Unit 6's output is latched.
-              
-              -- @IO:GS $D7D7.0-3 MATH:UNIT7OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 7
-              -- @IO:GS $D7D7.4 - MATH:U7LOWOUT If set, the low-half of the output of Math Function Unit 7 is written to math register UNIT7OUT.
-              -- @IO:GS $D7D7.5 - MATH:U7HIOUT If set, the high-half of the output of Math Function Unit 7 is written to math register UNIT7OUT.
-              -- @IO:GS $D7D7.6 - MATH:U7ADD If set, Math Function Unit 7 acts as a 32-bit adder instead of 32-bit multiplier.
-              -- @IO:GS $D7D7.7 - MATH:U7LATCH If set, Math Function Unit 7's output is latched.
-              
-              -- @IO:GS $D7D8.0-3 MATH:UNIT8OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 8
-              -- @IO:GS $D7D8.4 - MATH:U8LOWOUT If set, the low-half of the output of Math Function Unit 8 is written to math register UNIT8OUT.
-              -- @IO:GS $D7D8.5 - MATH:U8HIOUT If set, the high-half of the output of Math Function Unit 8 is written to math register UNIT8OUT.
-              -- @IO:GS $D7D8.6 - MATH:U8ADD If set, Math Function Unit 8 acts as a 32-bit adder instead of 32-bit barrel-shifter.
-              -- @IO:GS $D7D8.7 - MATH:U8LATCH If set, Math Function Unit 8's output is latched.
-              
-              -- @IO:GS $D7D9.0-3 MATH:UNIT9OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 9
-              -- @IO:GS $D7D9.4 - MATH:U9LOWOUT If set, the low-half of the output of Math Function Unit 9 is written to math register UNIT9OUT.
-              -- @IO:GS $D7D9.5 - MATH:U9HIOUT If set, the high-half of the output of Math Function Unit 9 is written to math register UNIT9OUT.
-              -- @IO:GS $D7D9.6 - MATH:U9ADD If set, Math Function Unit 9 acts as a 32-bit adder instead of 32-bit barrel-shifter.
-              -- @IO:GS $D7D9.7 - MATH:U9LATCH If set, Math Function Unit 9's output is latched.
-              
-              -- @IO:GS $D7DA.0-3 MATH:UNIT10OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit A
-              -- @IO:GS $D7DA.4 - MATH:UALOWOUT If set, the low-half of the output of Math Function Unit A is written to math register UNIT10OUT.
-              -- @IO:GS $D7DA.5 - MATH:UAHIOUT If set, the high-half of the output of Math Function Unit A is written to math register UNIT10OUT.
-              -- @IO:GS $D7DA.6 - MATH:UAADD If set, Math Function Unit A acts as a 32-bit adder instead of 32-bit barrel-shifter.
-              -- @IO:GS $D7DA.7 - MATH:UALATCH If set, Math Function Unit A's output is latched.
-              
-              -- @IO:GS $D7DB.0-3 MATH:UNIT11OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit B
-              -- @IO:GS $D7DB.4 - MATH:UBLOWOUT If set, the low-half of the output of Math Function Unit B is written to math register UNIT11OUT.
-              -- @IO:GS $D7DB.5 - MATH:UBHIOUT If set, the high-half of the output of Math Function Unit B is written to math register UNIT11OUT.
-              -- @IO:GS $D7DB.6 - MATH:UBADD If set, Math Function Unit B acts as a 32-bit adder instead of 32-bit barrel-shifter.
-              -- @IO:GS $D7DB.7 - MATH:UBLATCH If set, Math Function Unit B's output is latched.
-              
-              -- @IO:GS $D7DC.0-3 MATH:UNIT12OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit C
-              -- @IO:GS $D7DC.4 - MATH:UCLOWOUT If set, the low-half of the output of Math Function Unit C is written to math register UNIT12OUT.
-              -- @IO:GS $D7DC.5 - MATH:UCHIOUT If set, the high-half of the output of Math Function Unit C is written to math register UNIT12OUT.
-              -- @IO:GS $D7DC.6 - MATH:UCADD If set, Math Function Unit C acts as a 32-bit adder instead of 32-bit divider.
-              -- @IO:GS $D7DC.7 - MATH:UCLATCH If set, Math Function Unit C's output is latched.
-              
-              -- @IO:GS $D7DD.0-3 MATH:UNIT13OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit D
-              -- @IO:GS $D7DD.4 - MATH:UDLOWOUT If set, the low-half of the output of Math Function Unit D is written to math register UNIT13OUT.
-              -- @IO:GS $D7DD.5 - MATH:UDHIOUT If set, the high-half of the output of Math Function Unit D is written to math register UNIT13OUT.
-              -- @IO:GS $D7DD.6 - MATH:UDADD If set, Math Function Unit D acts as a 32-bit adder instead of 32-bit divider.
-              -- @IO:GS $D7DD.7 - MATH:UDLATCH If set, Math Function Unit D's output is latched.
-              
-              -- @IO:GS $D7DE.0-3 MATH:UNIT14OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit E
-              -- @IO:GS $D7DE.4 - MATH:UELOWOUT If set, the low-half of the output of Math Function Unit E is written to math register UNIT14OUT.
-              -- @IO:GS $D7DE.5 - MATH:UEHIOUT If set, the high-half of the output of Math Function Unit E is written to math register UNIT14OUT.
-              -- @IO:GS $D7DE.6 - MATH:UEADD If set, Math Function Unit E acts as a 32-bit adder instead of 32-bit divider.
-              -- @IO:GS $D7DE.7 - MATH:UELATCH If set, Math Function Unit E's output is latched.
-              
-              -- @IO:GS $D7DF.0-3 MATH:UNIT15OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit F
-              -- @IO:GS $D7DF.4 - MATH:UFLOWOUT If set, the low-half of the output of Math Function Unit F is written to math register UNIT15OUT.
-              -- @IO:GS $D7DF.5 - MATH:UFHIOUT If set, the high-half of the output of Math Function Unit F is written to math register UNIT15OUT.
-              -- @IO:GS $D7DF.6 - MATH:UFADD If set, Math Function Unit F acts as a 32-bit adder instead of 32-bit divider.
-              -- @IO:GS $D7DF.7 - MATH:UFLATCH If set, Math Function Unit F's output is latched.
-              
-              x"D0"|x"D1"|x"D2"|x"D3"|x"D4"|x"D5"|x"D6"|x"D7"|
-              x"D8"|x"D9"|x"DA"|x"DB"|x"DC"|x"DD"|x"DE"|x"DF" =>
-              read_data_copy <=
-                reg_math_config(to_integer(the_read_address(3 downto 0))).latched
-                &reg_math_config(to_integer(the_read_address(3 downto 0))).do_add
-                &reg_math_config(to_integer(the_read_address(3 downto 0))).output_high
-                &reg_math_config(to_integer(the_read_address(3 downto 0))).output_low
-                &to_unsigned(reg_math_config(to_integer(the_read_address(3 downto 0))).output,4);
-              -- @IO:GS $D7E0 MATH:LATCHINT Latch interval for latched outputs (in CPU cycles)
-              -- $D7E1 is documented higher up
-            when x"E0" => read_data_copy <= reg_math_latch_interval;
-            when x"E1" => read_data_copy <= math_unit_flags;
-            -- @IO:GS $D7E2 MATH:RESERVED Reserved
-            -- @IO:GS $D7E3 MATH:RESERVED Reserved
-            --@IO:GS $D7E4 MATH:ITERCNT Iteration Counter (32 bit)
-            --@IO:GS $D7E5 MATH:ITERCNT Iteration Counter (32 bit)
-            --@IO:GS $D7E6 MATH:ITERCNT Iteration Counter (32 bit)
-            --@IO:GS $D7E7 MATH:ITERCNT Iteration Counter (32 bit)
-            when x"e4" => read_data_copy <= reg_math_cycle_counter(7 downto 0);
-            when x"e5" => read_data_copy <= reg_math_cycle_counter(15 downto 8);
-            when x"e6" => read_data_copy <= reg_math_cycle_counter(23 downto 16);
-            when x"e7" => read_data_copy <= reg_math_cycle_counter(31 downto 24);
-            --@IO:GS $D7E8 MATH:ITERCMP Math iteration counter comparator (32 bit)
-            --@IO:GS $D7E9 MATH:ITERCMP Math iteration counter comparator (32 bit)
-            --@IO:GS $D7EA MATH:ITERCMP Math iteration counter comparator (32 bit)
-            --@IO:GS $D7EB MATH:ITERCMP Math iteration counter comparator (32 bit)
-            when x"e8" => read_data_copy <= reg_math_cycle_compare(7 downto 0);
-            when x"e9" => read_data_copy <= reg_math_cycle_compare(15 downto 8);
-            when x"ea" => read_data_copy <= reg_math_cycle_compare(23 downto 16);
-            when x"eb" => read_data_copy <= reg_math_cycle_compare(31 downto 24);
-
-            --@IO:GS $D7F2 CPU:PHIPERFRAME Count the number of PHI cycles per video frame (LSB)              
-            --@IO:GS $D7F5 CPU:PHIPERFRAME Count the number of PHI cycles per video frame (MSB)
-            when x"f2" => read_data_copy <= last_cycles_per_frame(7 downto 0);
-            when x"f3" => read_data_copy <= last_cycles_per_frame(15 downto 8);
-            when x"f4" => read_data_copy <= last_cycles_per_frame(23 downto 16);
-            when x"f5" => read_data_copy <= last_cycles_per_frame(31 downto 24);
-            --@IO:GS $D7F6 CPU:CYCPERFRAME Count the number of usable (proceed=1) CPU cycles per video frame (LSB)              
-            --@IO:GS $D7F9 CPU:CYCPERFRAME Count the number of usable (proceed=1) CPU cycles per video frame (MSB)
-            when x"f6" => read_data_copy <= last_proceeds_per_frame(7 downto 0);
-            when x"f7" => read_data_copy <= last_proceeds_per_frame(15 downto 8);
-            when x"f8" => read_data_copy <= last_proceeds_per_frame(23 downto 16);
-            when x"f9" => read_data_copy <= last_proceeds_per_frame(31 downto 24);
-            -- @IO:GS $D7FA CPU:FRAMECOUNT Count number of elapsed video frames
-            when x"fa" => read_data_copy <= frame_counter(7 downto 0);
-            when x"fb" => read_data_copy <= "000000" & cartridge_enable & "0";
-            when x"fc" => read_data_copy <= unsigned(chipselect_enables);
-            when x"fd" =>
-              report "Reading $D7FD";
-              value(7) := force_exrom;
-              value(6) := force_game;
-              value(5) := gated_exrom;
-              value(4) := gated_game;
-              value(3) := exrom;
-              value(2) := game;
-              value(1) := cartridge_enable;              
-              value(0) := '1'; -- Set if power is on, clear if power is off
-              read_data_copy <= value;
-            when x"fe" =>
-              value(0) := slow_prefetch_enable;
-              value(1) := ocean_cart_mode;
-              value(7 downto 2) := (others => '0');
-              read_data_copy <= value;
-            when others => read_data_copy <= x"ff";
-          end case;
-        when HypervisorRegister =>
-          report "HYPERPORT: Reading hypervisor register";
-          case hyperport_num is
-            when "000000" => read_data_copy <= hyper_a;
-            when "000001" => read_data_copy <= hyper_x;
-            when "000010" => read_data_copy <= hyper_y;
-            when "000011" => read_data_copy <= hyper_z;
-            when "000100" => read_data_copy <= hyper_b;
-            when "000101" => read_data_copy <= hyper_sp;
-            when "000110" => read_data_copy <= hyper_sph;
-            when "000111" => read_data_copy <= hyper_p;
-            when "001000" => read_data_copy <= hyper_pc(7 downto 0);
-            when "001001" => read_data_copy <= hyper_pc(15 downto 8);                           
-            when "001010" =>
-              read_data_copy <= unsigned(std_logic_vector(hyper_map_low)
-                              & std_logic_vector(hyper_map_offset_low(11 downto 8)));
-            when "001011" => read_data_copy <= hyper_map_offset_low(7 downto 0);
-            when "001100" =>
-              read_data_copy <= unsigned(std_logic_vector(hyper_map_high)
-                              & std_logic_vector(hyper_map_offset_high(11 downto 8)));
-            when "001101" => read_data_copy <= hyper_map_offset_high(7 downto 0);
-            when "001110" => read_data_copy <= hyper_mb_low;
-            when "001111" => read_data_copy <= hyper_mb_high;
-            when "010000" => read_data_copy <= hyper_port_00;
-            when "010001" => read_data_copy <= hyper_port_01;
-            when "010010" => read_data_copy <= hyper_iomode;
-            when "010011" => read_data_copy <= hyper_dmagic_src_mb;
-            when "010100" => read_data_copy <= hyper_dmagic_dst_mb;
-            when "010101" => read_data_copy <= hyper_dmagic_list_addr(7 downto 0);
-            when "010110" => read_data_copy <= hyper_dmagic_list_addr(15 downto 8);
-            when "010111" => read_data_copy <= hyper_dmagic_list_addr(23 downto 16);
-            when "011000" =>
-              read_data_copy <= to_unsigned(0,4)&hyper_dmagic_list_addr(27 downto 24);
-            when "011001" =>
-              read_data_copy <= "000000"&virtualise_sd1&virtualise_sd0;
-              
-            -- Virtual memory page registers here
-            when "011101" =>
-              read_data_copy <= unsigned(std_logic_vector(reg_pagenumber(1 downto 0))
-                              &"0"
-                              &reg_pageactive
-                              &reg_pages_dirty);
-            when "011110" => read_data_copy <= reg_pagenumber(9 downto 2);
-            when "011111" => read_data_copy <= reg_pagenumber(17 downto 10);
-            when "100000" => read_data_copy <= reg_page0_logical(7 downto 0);
-            when "100001" => read_data_copy <= reg_page0_logical(15 downto 8);
-            when "100010" => read_data_copy <= reg_page0_physical(7 downto 0);
-            when "100011" => read_data_copy <= reg_page0_physical(15 downto 8);
-            when "100100" => read_data_copy <= reg_page1_logical(7 downto 0);
-            when "100101" => read_data_copy <= reg_page1_logical(15 downto 8);
-            when "100110" => read_data_copy <= reg_page1_physical(7 downto 0);
-            when "100111" => read_data_copy <= reg_page1_physical(15 downto 8);
-            when "101000" => read_data_copy <= reg_page2_logical(7 downto 0);
-            when "101001" => read_data_copy <= reg_page2_logical(15 downto 8);
-            when "101010" => read_data_copy <= reg_page2_physical(7 downto 0);
-            when "101011" => read_data_copy <= reg_page2_physical(15 downto 8);
-            when "101100" => read_data_copy <= reg_page3_logical(7 downto 0);
-            when "101101" => read_data_copy <= reg_page3_logical(15 downto 8);
-            when "101110" => read_data_copy <= reg_page3_physical(7 downto 0);
-            when "101111" => read_data_copy <= reg_page3_physical(15 downto 8);
-            when "110000" => read_data_copy <= georam_page(19 downto 12);
-            when "110001" => read_data_copy <= georam_blockmask;
-            --$D672 - Protected Hardware
-            when "110010" => read_data_copy <= hyper_protected_hardware;
-                             
-            when "111100" => -- $D640+$3C
-              -- @IO:GS $D67C.6 - (read) Hypervisor internal immediate UART monitor busy flag (can write when 0)
-              -- @IO:GS $D67C.7 - (read) Hypervisor serial output from UART monitor busy flag (can write when 0)
-              -- so we have an immediate busy flag that we manage separately.
-              read_data_copy <= "000000"
-                & immediate_monitor_char_busy
-                & monitor_char_busy;
-
-            when "111101" =>
-              -- this section $D67D
-              read_data_copy <= nmi_pending
-                & iec_bus_active
-                & force_4502
-                & force_fast
-                & speed_gate_enable_internal
-                & rom_writeprotect
-                & flat32_enabled
-                & cartridge_enable;                        
-            when "111110" =>
-              -- @IO:GS $D67E.7 (read) Hypervisor upgraded flag. Writing any value here sets this bit until next power on (i.e., it surives reset).
-              -- @IO:GS $D67E.6 (read) Hypervisor read /EXROM signal from cartridge.
-              -- @IO:GS $D67E.5 (read) Hypervisor read /GAME signal from cartridge.
-              read_data_copy <= hypervisor_upgraded
-                & exrom
-                & game
-                & "00000";
-            when "111111" => read_data_copy <= x"48"; -- 'H' for Hypermode
-            when others => read_data_copy <= x"FF";
-          end case;
-
-        when CPUPort =>
-          report "reading from CPU port" severity note;
-          case cpuport_num is
-            when x"0" => read_data_copy <= cpuport_ddr;
-            when x"1" => read_data_copy <= cpuport_value;
-            when x"2" => read_data_copy <= rec_status;
-            when x"3" => read_data_copy <= vdc_status;
-            when x"4" =>
-              -- Read other VDC registers.
-              read_data_copy <= x"ff";
-            when x"5" => read_data_copy <= vdc_mem_addr(7 downto 0);
-            when x"6" => read_data_copy <= vdc_mem_addr(15 downto 8);
-            when x"7" => read_data_copy <= vdc_reg_num(7 downto 0);
-            when others => read_data_copy <= x"ff";
-          end case;
-        when Shadow =>
-          report "reading from shadow RAM" severity note;
-          read_data_copy <= shadow_rdata;
-        when ColourRAM =>
-          report "reading colour RAM fastio byte $" & to_hstring(fastio_vic_rdata) severity note;
-          read_data_copy <= unsigned(fastio_colour_ram_rdata);
-        when VICIV =>
-          report "reading VIC fastio byte $" & to_hstring(fastio_vic_rdata) severity note;
-          read_data_copy <= unsigned(fastio_vic_rdata);
-        when FastIO =>
-          report "reading normal fastio byte $" & to_hstring(fastio_rdata) severity note;
-          read_data_copy <= unsigned(fastio_rdata);
-        when Hyppo =>
-          report "reading hyppo fastio byte $" & to_hstring(hyppo_rdata) severity note;
-          read_data_copy <= unsigned(hyppo_rdata);
-        when SlowRAM =>
-          report "reading slow RAM data. Word is $" & to_hstring(slow_access_rdata) severity note;
-          read_data_copy <= unsigned(slow_access_rdata);
-        when SlowRAMPreFetch =>
-          report "reading slow prefetched RAM data. Word is $" & to_hstring(slow_access_rdata) severity note;
-          read_data_copy <= unsigned(slow_prefetch_data);          
-        when Unmapped =>
-          report "accessing unmapped memory" severity note;
-          read_data_copy <= x"A0";                     -- make unmmapped memory obvious
-      end case;
-    end read_data_complex; 
 
     procedure write_long_byte(
       real_long_address       : in unsigned(27 downto 0);
@@ -3104,7 +2433,6 @@ begin
         -- @IO:GS $D7E1.0 MATH:WREN Enable setting of math registers (must normally be set)
         -- @IO:GS $D7E1.1 MATH:CALCEN Enable committing of output values from math units back to math registers (clearing effectively pauses iterative formulae)
         math_unit_flags <= value;
-        reg_math_cycle_counter <= to_unsigned(0,32);        
       elsif (long_address = x"FFD37E8") or (long_address = x"FFD17E8") then
         reg_math_cycle_compare(7 downto 0) <= value;
       elsif (long_address = x"FFD37E9") or (long_address = x"FFD17E9") then
@@ -3553,7 +2881,9 @@ begin
     variable line_x_move_negative : std_logic := '0';
     variable line_y_move : std_logic := '0';
     variable line_y_move_negative : std_logic := '0';
-    
+
+    variable read_data_copy_temp : unsigned(7 downto 0);
+
   begin    
     -- Begin calculating results for operations immediately to help timing.
     -- The trade-off is consuming a bit of extra silicon.
@@ -3806,6 +3136,16 @@ begin
         end if;
       end if;
     end if;    
+
+    if rising_edge(mathclock) and all_pause = '0' then
+      if not (reset_drive = '0' or watchdog_reset = '1' or phi_pause = '1') then
+        if memory_access_write = '1' then
+          if (long_address_write = x"FFD37E1") or (long_address_write = x"FFD17E1") then
+            reg_math_cycle_counter <= to_unsigned(0, 32);
+          end if;
+        end if;
+      end if;
+    end if;
 
     -- BEGINNING OF MAIN PROCESS FOR CPU
     if rising_edge(clock) and all_pause='0' then
@@ -4635,8 +3975,673 @@ begin
                                         -- Copy read memory location to simplify reading from memory.
                                         -- Penalty is +1 wait state for memory other than shadowram.
       -- GHDL bug workaround: impure functions aren't supported very well, they can't have more than one return value.
-      -- read_data_copy <= read_data_complex;
-      read_data_complex;
+      -- read_data_complex function
+      -- CPU hosted IO registers
+      report "Read source is " & memory_source'image(read_source);
+      case read_source is
+        when DMAgicRegister =>
+          -- Actually, this is all of $D700-$D7FF decoded by the CPU at present
+          report "Reading CPU register (DMAgicRegister path)";
+          case the_read_address(7 downto 0) is
+            when x"00"|x"05" => read_data_copy <= reg_dmagic_addr(7 downto 0);
+            when x"01" => read_data_copy <= reg_dmagic_addr(15 downto 8);
+            when x"02" => read_data_copy <= reg_dmagic_withio
+                            & reg_dmagic_addr(22 downto 16);
+            when x"03" => read_data_copy <= reg_dmagic_status(7 downto 1) & support_f018b;
+            when x"04" => read_data_copy <= reg_dmagic_addr(27 downto 20);
+            when x"10" => read_data_copy <= "00" & badline_extra_cycles  & charge_for_branches_taken & vdc_enabled & slow_interrupts & badline_enable;
+            -- @IO:GS $D711.7 DMA:AUDEN Enable Audio DMA
+            -- @IO:GS $D711.6 DMA:BLKD Audio DMA blocked (read only) DEBUG
+            -- @IO:GS $D711.5 DMA:AUDWRBLK Audio DMA block writes (samples still get read) 
+            -- @IO:GS $D711.4 DMA:NOMIX Audio DMA bypasses audio mixer
+            -- @IO:GS $D711.3 AUDIO:PWMPDM PWM/PDM audio encoding select
+            -- @IO:GS $D711.0-2 DMA:AUDBLKTO Audio DMA block timeout (read only) DEBUG
+            when x"11" => read_data_copy <= audio_dma_enable & pending_dma_busy & audio_dma_disable_writes & cpu_pcm_bypass_int & pwm_mode_select_int & "000";
+                          
+            -- XXX DEBUG registers for audio DMA
+            when x"12" => read_data_copy <= audio_dma_left_saturated & audio_dma_right_saturated &
+                            "0000" & audio_dma_swap & audio_dma_saturation_enable;
+
+            -- @IO:GS $D71C DMA:CH0RVOL Audio DMA channel 0 right channel volume
+            -- @IO:GS $D71D DMA:CH1RVOL Audio DMA channel 1 right channel volume
+            -- @IO:GS $D71E DMA:CH2LVOL Audio DMA channel 2 left channel volume
+            -- @IO:GS $D71F DMA:CH3LVOL Audio DMA channel 3 left channel volume
+            when x"1c" => read_data_copy <= audio_dma_pan_volume(0)(7 downto 0);
+            when x"1d" => read_data_copy <= audio_dma_pan_volume(1)(7 downto 0);
+            when x"1e" => read_data_copy <= audio_dma_pan_volume(2)(7 downto 0);
+            when x"1f" => read_data_copy <= audio_dma_pan_volume(3)(7 downto 0);
+
+            -- @IO:GS $D720.7 DMA:CH0EN Enable Audio DMA channel 0
+            -- @IO:GS $D720.6 DMA:CH0LOOP Enable Audio DMA channel 0 looping
+            -- @IO:GS $D720.5 DMA:CH0SGN Enable Audio DMA channel 0 signed samples
+            -- @IO:GS $D720.4 DMA:CH0SINE Audio DMA channel 0 play 32-sample sine wave instead of DMA data
+            -- @IO:GS $D720.3 DMA:CH0STP Audio DMA channel 0 stop flag
+            -- @IO:GS $D720.0-1 DMA:CH0SBITS Audio DMA channel 0 sample bits (11=16, 10=8, 01=upper nybl, 00=lower nybl)
+            -- @IO:GS $D721 DMA:CH0BADDR Audio DMA channel 0 base address LSB
+            -- @IO:GS $D722 DMA:CH0BADDR Audio DMA channel 0 base address middle byte
+            -- @IO:GS $D723 DMA:CH0BADDR Audio DMA channel 0 base address MSB
+            -- @IO:GS $D724 DMA:CH0FREQ Audio DMA channel 0 frequency LSB
+            -- @IO:GS $D725 DMA:CH0FREQ Audio DMA channel 0 frequency middle byte
+            -- @IO:GS $D726 DMA:CH0FREQ Audio DMA channel 0 frequency MSB
+            -- @IO:GS $D727 DMA:CH0TADDR Audio DMA channel 0 top address LSB
+            -- @IO:GS $D728 DMA:CH0TADDR Audio DMA channel 0 top address middle byte
+            -- @IO:GS $D729 DMA:CH0VOLUME Audio DMA channel 0 playback volume
+            -- @IO:GS $D72A DMA:CH0FREQ Audio DMA channel 0 current address LSB
+            -- @IO:GS $D72B DMA:CH0FREQ Audio DMA channel 0 current address middle byte
+            -- @IO:GS $D72C DMA:CH0FREQ Audio DMA channel 0 current address MSB
+            -- @IO:GS $D72D DMA:CH0FREQ Audio DMA channel 0 timing counter LSB
+            -- @IO:GS $D72E DMA:CH0FREQ Audio DMA channel 0 timing counter middle byte
+            -- @IO:GS $D72F DMA:CH0FREQ Audio DMA channel 0 timing counter address MSB
+
+            -- @IO:GS $D730.7 DMA:CH1EN Enable Audio DMA channel 1
+            -- @IO:GS $D730.6 DMA:CH1LOOP Enable Audio DMA channel 1 looping
+            -- @IO:GS $D730.5 DMA:CH1SGN Enable Audio DMA channel 1 signed samples
+            -- @IO:GS $D730.4 DMA:CH1SINE Audio DMA channel 1 play 32-sample sine wave instead of DMA data
+            -- @IO:GS $D730.3 DMA:CH1STP Audio DMA channel 1 stop flag
+            -- @IO:GS $D730.0-1 DMA:CH1SBITS Audio DMA channel 1 sample bits (11=16, 10=8, 01=upper nybl, 00=lower nybl)
+            -- @IO:GS $D731 DMA:CH1BADDR Audio DMA channel 1 base address LSB
+            -- @IO:GS $D732 DMA:CH1BADDR Audio DMA channel 1 base address middle byte
+            -- @IO:GS $D733 DMA:CH1BADDR Audio DMA channel 1 base address MSB
+            -- @IO:GS $D734 DMA:CH1FREQ Audio DMA channel 1 frequency LSB
+            -- @IO:GS $D735 DMA:CH1FREQ Audio DMA channel 1 frequency middle byte
+            -- @IO:GS $D736 DMA:CH1FREQ Audio DMA channel 1 frequency MSB
+            -- @IO:GS $D737 DMA:CH1TADDR Audio DMA channel 1 top address LSB
+            -- @IO:GS $D738 DMA:CH1TADDR Audio DMA channel 1 top address middle byte
+            -- @IO:GS $D739 DMA:CH1VOLUME Audio DMA channel 1 playback volume
+            -- @IO:GS $D73A DMA:CH1FREQ Audio DMA channel 1 current address LSB
+            -- @IO:GS $D73B DMA:CH1FREQ Audio DMA channel 1 current address middle byte
+            -- @IO:GS $D73C DMA:CH1FREQ Audio DMA channel 1 current address MSB
+            -- @IO:GS $D73D DMA:CH1FREQ Audio DMA channel 1 timing counter LSB
+            -- @IO:GS $D73E DMA:CH1FREQ Audio DMA channel 1 timing counter middle byte
+            -- @IO:GS $D73F DMA:CH1FREQ Audio DMA channel 1 timing counter address MSB
+
+            -- @IO:GS $D740.7 DMA:CH2EN Enable Audio DMA channel 2
+            -- @IO:GS $D740.6 DMA:CH2LOOP Enable Audio DMA channel 2 looping
+            -- @IO:GS $D740.5 DMA:CH2SGN Enable Audio DMA channel 2 signed samples
+            -- @IO:GS $D740.4 DMA:CH2SINE Audio DMA channel 2 play 32-sample sine wave instead of DMA data
+            -- @IO:GS $D740.3 DMA:CH2STP Audio DMA channel 2 stop flag
+            -- @IO:GS $D740.0-1 DMA:CH1SBITS Audio DMA channel 1 sample bits (11=16, 10=8, 01=upper nybl, 00=lower nybl)
+            -- @IO:GS $D741 DMA:CH2BADDR Audio DMA channel 2 base address LSB
+            -- @IO:GS $D742 DMA:CH2BADDR Audio DMA channel 2 base address middle byte
+            -- @IO:GS $D743 DMA:CH2BADDR Audio DMA channel 2 base address MSB
+            -- @IO:GS $D744 DMA:CH2FREQ Audio DMA channel 2 frequency LSB
+            -- @IO:GS $D745 DMA:CH2FREQ Audio DMA channel 2 frequency middle byte
+            -- @IO:GS $D746 DMA:CH2FREQ Audio DMA channel 2 frequency MSB
+            -- @IO:GS $D747 DMA:CH2TADDR Audio DMA channel 2 top address LSB
+            -- @IO:GS $D748 DMA:CH2TADDR Audio DMA channel 2 top address middle byte
+            -- @IO:GS $D749 DMA:CH2VOLUME Audio DMA channel 2 playback volume
+            -- @IO:GS $D74A DMA:CH2FREQ Audio DMA channel 2 current address LSB
+            -- @IO:GS $D74B DMA:CH2FREQ Audio DMA channel 2 current address middle byte
+            -- @IO:GS $D74C DMA:CH2FREQ Audio DMA channel 2 current address MSB
+            -- @IO:GS $D74D DMA:CH2FREQ Audio DMA channel 2 timing counter LSB
+            -- @IO:GS $D74E DMA:CH2FREQ Audio DMA channel 2 timing counter middle byte
+            -- @IO:GS $D74F DMA:CH2FREQ Audio DMA channel 2 timing counter address MSB
+                          
+            -- @IO:GS $D750.7 DMA:CH3EN Enable Audio DMA channel 3
+            -- @IO:GS $D750.6 DMA:CH3LOOP Enable Audio DMA channel 3 looping
+            -- @IO:GS $D750.5 DMA:CH3SGN Enable Audio DMA channel 3 signed samples
+            -- @IO:GS $D750.4 DMA:CH3SINE Audio DMA channel 3 play 32-sample sine wave instead of DMA data
+            -- @IO:GS $D750.3 DMA:CH3STP Audio DMA channel 3 stop flag
+            -- @IO:GS $D750.0-1 DMA:CH3SBITS Audio DMA channel 3 sample bits (11=16, 10=8, 01=upper nybl, 00=lower nybl)
+            -- @IO:GS $D751 DMA:CH3BADDR Audio DMA channel 3 base address LSB
+            -- @IO:GS $D752 DMA:CH3BADDR Audio DMA channel 3 base address middle byte
+            -- @IO:GS $D753 DMA:CH3BADDR Audio DMA channel 3 base address MSB
+            -- @IO:GS $D754 DMA:CH3FREQ Audio DMA channel 3 frequency LSB
+            -- @IO:GS $D755 DMA:CH3FREQ Audio DMA channel 3 frequency middle byte
+            -- @IO:GS $D756 DMA:CH3FREQ Audio DMA channel 3 frequency MSB
+            -- @IO:GS $D757 DMA:CH3TADDR Audio DMA channel 3 top address LSB
+            -- @IO:GS $D758 DMA:CH3TADDR Audio DMA channel 3 top address middle byte
+            -- @IO:GS $D759 DMA:CH3VOLUME Audio DMA channel 3 playback volume
+            -- @IO:GS $D75A DMA:CH3FREQ Audio DMA channel 3 current address LSB
+            -- @IO:GS $D75B DMA:CH3FREQ Audio DMA channel 3 current address middle byte
+            -- @IO:GS $D75C DMA:CH3FREQ Audio DMA channel 3 current address MSB
+            -- @IO:GS $D75D DMA:CH3FREQ Audio DMA channel 3 timing counter LSB
+            -- @IO:GS $D75E DMA:CH3FREQ Audio DMA channel 3 timing counter middle byte
+            -- @IO:GS $D75F DMA:CH3FREQ Audio DMA channel 3 timing counter address MSB
+
+                          
+            -- $D720-$D72F - Audio DMA channel 0                          
+            when x"20" => read_data_copy <= audio_dma_enables(0) & audio_dma_repeat(0) & audio_dma_signed(0) &
+                            audio_dma_sine_wave(0) & audio_dma_stop(0) & audio_dma_sample_valid(0) & audio_dma_sample_width(0);
+            when x"21" => read_data_copy <= audio_dma_base_addr(0)(7 downto 0);
+            when x"22" => read_data_copy <= audio_dma_base_addr(0)(15 downto 8);
+            when x"23" => read_data_copy <= audio_dma_base_addr(0)(23 downto 16);
+            when x"24" => read_data_copy <= audio_dma_time_base(0)(7 downto 0);
+            when x"25" => read_data_copy <= audio_dma_time_base(0)(15 downto 8);
+            when x"26" => read_data_copy <= audio_dma_time_base(0)(23 downto 16);
+            when x"27" => read_data_copy <= audio_dma_top_addr(0)(7 downto 0);
+            when x"28" => read_data_copy <= audio_dma_top_addr(0)(15 downto 8);
+            when x"29" => read_data_copy <= audio_dma_volume(0)(7 downto 0);
+            when x"2a" => read_data_copy <= audio_dma_current_addr(0)(7 downto 0);
+            when x"2b" => read_data_copy <= audio_dma_current_addr(0)(15 downto 8);
+            when x"2c" => read_data_copy <= audio_dma_current_addr(0)(23 downto 16);
+            when x"2d" => read_data_copy <= audio_dma_timing_counter(0)(7 downto 0);
+            when x"2e" => read_data_copy <= audio_dma_timing_counter(0)(15 downto 8);
+            when x"2f" => read_data_copy <= audio_dma_timing_counter(0)(23 downto 16);
+            -- $D730-$D73F - Audio DMA channel 1
+            when x"30" => read_data_copy <= audio_dma_enables(1) & audio_dma_repeat(1) & audio_dma_signed(1) &
+                            audio_dma_sine_wave(1) & audio_dma_stop(1) & audio_dma_sample_valid(1) & audio_dma_sample_width(1);
+            when x"31" => read_data_copy <= audio_dma_base_addr(1)(7 downto 0);
+            when x"32" => read_data_copy <= audio_dma_base_addr(1)(15 downto 8);
+            when x"33" => read_data_copy <= audio_dma_base_addr(1)(23 downto 16);
+            when x"34" => read_data_copy <= audio_dma_time_base(1)(7 downto 0);
+            when x"35" => read_data_copy <= audio_dma_time_base(1)(15 downto 8);
+            when x"36" => read_data_copy <= audio_dma_time_base(1)(23 downto 16);
+            when x"37" => read_data_copy <= audio_dma_top_addr(1)(7 downto 0);
+            when x"38" => read_data_copy <= audio_dma_top_addr(1)(15 downto 8);
+            when x"39" => read_data_copy <= audio_dma_volume(1)(7 downto 0);
+            when x"3a" => read_data_copy <= audio_dma_current_addr(1)(7 downto 0);
+            when x"3b" => read_data_copy <= audio_dma_current_addr(1)(15 downto 8);
+            when x"3c" => read_data_copy <= audio_dma_current_addr(1)(23 downto 16);
+            when x"3d" => read_data_copy <= audio_dma_timing_counter(1)(7 downto 0);
+            when x"3e" => read_data_copy <= audio_dma_timing_counter(1)(15 downto 8);
+            when x"3f" => read_data_copy <= audio_dma_timing_counter(1)(23 downto 16);
+                                        -- $D740-$D74F - Audio DMA channel 2
+            when x"40" => read_data_copy <= audio_dma_enables(2) & audio_dma_repeat(2) & audio_dma_signed(2) &
+                            audio_dma_sine_wave(2) & audio_dma_stop(2) & audio_dma_sample_valid(2) & audio_dma_sample_width(2);
+            when x"41" => read_data_copy <= audio_dma_base_addr(2)(7 downto 0);
+            when x"42" => read_data_copy <= audio_dma_base_addr(2)(15 downto 8);
+            when x"43" => read_data_copy <= audio_dma_base_addr(2)(23 downto 16);
+            when x"44" => read_data_copy <= audio_dma_time_base(2)(7 downto 0);
+            when x"45" => read_data_copy <= audio_dma_time_base(2)(15 downto 8);
+            when x"46" => read_data_copy <= audio_dma_time_base(2)(23 downto 16);
+            when x"47" => read_data_copy <= audio_dma_top_addr(2)(7 downto 0);
+            when x"48" => read_data_copy <= audio_dma_top_addr(2)(15 downto 8);
+            when x"49" => read_data_copy <= audio_dma_volume(2)(7 downto 0);
+            when x"4a" => read_data_copy <= audio_dma_current_addr(2)(7 downto 0);
+            when x"4b" => read_data_copy <= audio_dma_current_addr(2)(15 downto 8);
+            when x"4c" => read_data_copy <= audio_dma_current_addr(2)(23 downto 16);
+            when x"4d" => read_data_copy <= audio_dma_timing_counter(2)(7 downto 0);
+            when x"4e" => read_data_copy <= audio_dma_timing_counter(2)(15 downto 8);
+            when x"4f" => read_data_copy <= audio_dma_timing_counter(2)(23 downto 16);
+            -- $D750-$D75F - Audio DMA channel 3
+            when x"50" => read_data_copy <= audio_dma_enables(3) & audio_dma_repeat(3) & audio_dma_signed(3) &
+                            audio_dma_sine_wave(3) & audio_dma_stop(3) & audio_dma_sample_valid(3) & audio_dma_sample_width(3);
+            when x"51" => read_data_copy <= audio_dma_base_addr(3)(7 downto 0);
+            when x"52" => read_data_copy <= audio_dma_base_addr(3)(15 downto 8);
+            when x"53" => read_data_copy <= audio_dma_base_addr(3)(23 downto 16);
+            when x"54" => read_data_copy <= audio_dma_time_base(3)(7 downto 0);
+            when x"55" => read_data_copy <= audio_dma_time_base(3)(15 downto 8);
+            when x"56" => read_data_copy <= audio_dma_time_base(3)(23 downto 16);
+            when x"57" => read_data_copy <= audio_dma_top_addr(3)(7 downto 0);
+            when x"58" => read_data_copy <= audio_dma_top_addr(3)(15 downto 8);
+            when x"59" => read_data_copy <= audio_dma_volume(3)(7 downto 0);
+            when x"5a" => read_data_copy <= audio_dma_current_addr(3)(7 downto 0);
+            when x"5b" => read_data_copy <= audio_dma_current_addr(3)(15 downto 8);
+            when x"5c" => read_data_copy <= audio_dma_current_addr(3)(23 downto 16);
+            when x"5d" => read_data_copy <= audio_dma_timing_counter(3)(7 downto 0);
+            when x"5e" => read_data_copy <= audio_dma_timing_counter(3)(15 downto 8);
+            when x"5f" => read_data_copy <= audio_dma_timing_counter(3)(23 downto 16);
+
+                                             
+            -- $D760-$D7DF reserved for math unit functions
+            when x"68" => read_data_copy <= div_q(7 downto 0);
+            when x"69" => read_data_copy <= div_q(15 downto 8);
+            when x"6a" => read_data_copy <= div_q(23 downto 16);
+            when x"6b" => read_data_copy <= div_q(31 downto 24);
+            when x"6c" => read_data_copy <= div_q(39 downto 32);
+            when x"6d" => read_data_copy <= div_q(47 downto 40);
+            when x"6e" => read_data_copy <= div_q(55 downto 48);
+            when x"6f" => read_data_copy <= div_q(63 downto 56);
+            when x"70" => read_data_copy <= reg_mult_a(7 downto 0);
+            when x"71" => read_data_copy <= reg_mult_a(15 downto 8);
+            when x"72" => read_data_copy <= reg_mult_a(23 downto 16);
+            when x"73" => read_data_copy <= reg_mult_a(31 downto 24);
+            when x"74" => read_data_copy <= reg_mult_b(7 downto 0);
+            when x"75" => read_data_copy <= reg_mult_b(15 downto 8);
+            when x"76" => read_data_copy <= reg_mult_b(23 downto 16);
+            when x"77" => read_data_copy <= reg_mult_b(31 downto 24);
+            -- @IO:GS $D768 MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
+            -- @IO:GS $D769 MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
+            -- @IO:GS $D76A MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
+            -- @IO:GS $D76B MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
+            -- @IO:GS $D76C MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
+            -- @IO:GS $D76D MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
+            -- @IO:GS $D76E MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
+            -- @IO:GS $D76F MATH:MULTOUT 64-bit output of MULTINA $\div$ MULTINB
+            -- @IO:GS $D770 MATH:MULTINA Multiplier input A / Divider numerator (32 bit)
+            -- @IO:GS $D771 MATH:MULTINA Multiplier input A / Divider numerator (32 bit)
+            -- @IO:GS $D772 MATH:MULTINA Multiplier input A / Divider numerator (32 bit)
+            -- @IO:GS $D773 MATH:MULTINA Multiplier input A / Divider numerator (32 bit)
+            -- @IO:GS $D774 MATH:MULTINB Multiplier input B / Divider denominator (32 bit)
+            -- @IO:GS $D775 MATH:MULTINB Multiplier input B / Divider denominator (32 bit)
+            -- @IO:GS $D776 MATH:MULTINB Multiplier input B / Divider denominator (32 bit)
+            -- @IO:GS $D777 MATH:MULTINB Multiplier input B / Divider denominator (32 bit)
+            -- @IO:GS $D778 MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
+            -- @IO:GS $D779 MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
+            -- @IO:GS $D77A MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
+            -- @IO:GS $D77B MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
+            -- @IO:GS $D77C MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
+            -- @IO:GS $D77D MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
+            -- @IO:GS $D77E MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
+            -- @IO:GS $D77F MATH:MULTOUT 64-bit output of MULTINA $\times$ MULTINB
+
+            when x"78" => read_data_copy <= reg_mult_p(7 downto 0);
+            when x"79" => read_data_copy <= reg_mult_p(15 downto 8);
+            when x"7a" => read_data_copy <= reg_mult_p(23 downto 16);
+            when x"7b" => read_data_copy <= reg_mult_p(31 downto 24);
+            when x"7c" => read_data_copy <= reg_mult_p(39 downto 32);
+            when x"7d" => read_data_copy <= reg_mult_p(47 downto 40);
+            when x"7e" => read_data_copy <= reg_mult_p(55 downto 48);
+            when x"7f" => read_data_copy <= reg_mult_p(63 downto 56);
+            -- @IO:GS $D780-$D7BF - 16 x 32 bit Math Unit values
+            -- @IO:GS $D780 MATH:MATHIN0 Math unit 32-bit input 0
+            -- @IO:GS $D781 MATH:MATHIN0 Math unit 32-bit input 0
+            -- @IO:GS $D782 MATH:MATHIN0 Math unit 32-bit input 0
+            -- @IO:GS $D783 MATH:MATHIN0 Math unit 32-bit input 0
+            -- @IO:GS $D784 MATH:MATHIN1 Math unit 32-bit input 1
+            -- @IO:GS $D785 MATH:MATHIN1 Math unit 32-bit input 1
+            -- @IO:GS $D786 MATH:MATHIN1 Math unit 32-bit input 1
+            -- @IO:GS $D787 MATH:MATHIN1 Math unit 32-bit input 1
+            -- @IO:GS $D788 MATH:MATHIN2 Math unit 32-bit input 2
+            -- @IO:GS $D789 MATH:MATHIN2 Math unit 32-bit input 2
+            -- @IO:GS $D78A MATH:MATHIN2 Math unit 32-bit input 2
+            -- @IO:GS $D78B MATH:MATHIN2 Math unit 32-bit input 2
+            -- @IO:GS $D78C MATH:MATHIN3 Math unit 32-bit input 3
+            -- @IO:GS $D78D MATH:MATHIN3 Math unit 32-bit input 3
+            -- @IO:GS $D78E MATH:MATHIN3 Math unit 32-bit input 3
+            -- @IO:GS $D78F MATH:MATHIN3 Math unit 32-bit input 3
+            -- @IO:GS $D790 MATH:MATHIN4 Math unit 32-bit input 4
+            -- @IO:GS $D791 MATH:MATHIN4 Math unit 32-bit input 4
+            -- @IO:GS $D792 MATH:MATHIN4 Math unit 32-bit input 4
+            -- @IO:GS $D793 MATH:MATHIN4 Math unit 32-bit input 4
+            -- @IO:GS $D794 MATH:MATHIN5 Math unit 32-bit input 5
+            -- @IO:GS $D795 MATH:MATHIN5 Math unit 32-bit input 5
+            -- @IO:GS $D796 MATH:MATHIN5 Math unit 32-bit input 5
+            -- @IO:GS $D797 MATH:MATHIN5 Math unit 32-bit input 5
+            -- @IO:GS $D798 MATH:MATHIN6 Math unit 32-bit input 6
+            -- @IO:GS $D799 MATH:MATHIN6 Math unit 32-bit input 6
+            -- @IO:GS $D79A MATH:MATHIN6 Math unit 32-bit input 6
+            -- @IO:GS $D79B MATH:MATHIN6 Math unit 32-bit input 6
+            -- @IO:GS $D79C MATH:MATHIN7 Math unit 32-bit input 7
+            -- @IO:GS $D79D MATH:MATHIN7 Math unit 32-bit input 7
+            -- @IO:GS $D79E MATH:MATHIN7 Math unit 32-bit input 7
+            -- @IO:GS $D79F MATH:MATHIN7 Math unit 32-bit input 7
+            -- @IO:GS $D7A0 MATH:MATHIN8 Math unit 32-bit input 8
+            -- @IO:GS $D7A1 MATH:MATHIN8 Math unit 32-bit input 8
+            -- @IO:GS $D7A2 MATH:MATHIN8 Math unit 32-bit input 8
+            -- @IO:GS $D7A3 MATH:MATHIN8 Math unit 32-bit input 8
+            -- @IO:GS $D7A4 MATH:MATHIN9 Math unit 32-bit input 9
+            -- @IO:GS $D7A5 MATH:MATHIN9 Math unit 32-bit input 9
+            -- @IO:GS $D7A6 MATH:MATHIN9 Math unit 32-bit input 9
+            -- @IO:GS $D7A7 MATH:MATHIN9 Math unit 32-bit input 9
+            -- @IO:GS $D7A8 MATH:MATHIN10 Math unit 32-bit input 10
+            -- @IO:GS $D7A9 MATH:MATHIN10 Math unit 32-bit input 10
+            -- @IO:GS $D7AA MATH:MATHIN10 Math unit 32-bit input 10
+            -- @IO:GS $D7AB MATH:MATHIN10 Math unit 32-bit input 10
+            -- @IO:GS $D7AC MATH:MATHIN11 Math unit 32-bit input 11
+            -- @IO:GS $D7AD MATH:MATHIN11 Math unit 32-bit input 11
+            -- @IO:GS $D7AE MATH:MATHIN11 Math unit 32-bit input 11
+            -- @IO:GS $D7AF MATH:MATHIN11 Math unit 32-bit input 11
+            -- @IO:GS $D7B0 MATH:MATHIN12 Math unit 32-bit input 12
+            -- @IO:GS $D7B1 MATH:MATHIN12 Math unit 32-bit input 12
+            -- @IO:GS $D7B2 MATH:MATHIN12 Math unit 32-bit input 12
+            -- @IO:GS $D7B3 MATH:MATHIN12 Math unit 32-bit input 12
+            -- @IO:GS $D7B4 MATH:MATHIN13 Math unit 32-bit input 13
+            -- @IO:GS $D7B5 MATH:MATHIN13 Math unit 32-bit input 13
+            -- @IO:GS $D7B6 MATH:MATHIN13 Math unit 32-bit input 13
+            -- @IO:GS $D7B7 MATH:MATHIN13 Math unit 32-bit input 13
+            -- @IO:GS $D7B8 MATH:MATHIN14 Math unit 32-bit input 14
+            -- @IO:GS $D7B9 MATH:MATHIN14 Math unit 32-bit input 14
+            -- @IO:GS $D7BA MATH:MATHIN14 Math unit 32-bit input 14
+            -- @IO:GS $D7BB MATH:MATHIN14 Math unit 32-bit input 14
+            -- @IO:GS $D7BC MATH:MATHIN15 Math unit 32-bit input 15
+            -- @IO:GS $D7BD MATH:MATHIN15 Math unit 32-bit input 15
+            -- @IO:GS $D7BE MATH:MATHIN15 Math unit 32-bit input 15
+            -- @IO:GS $D7BF MATH:MATHIN15 Math unit 32-bit input 15
+            when
+              x"80"|x"81"|x"82"|x"83"|x"84"|x"85"|x"86"|x"87"|
+              x"88"|x"89"|x"8A"|x"8B"|x"8C"|x"8D"|x"8E"|x"8F"|
+              x"90"|x"91"|x"92"|x"93"|x"94"|x"95"|x"96"|x"97"|
+              x"98"|x"99"|x"9A"|x"9B"|x"9C"|x"9D"|x"9E"|x"9F"|
+              x"A0"|x"A1"|x"A2"|x"A3"|x"A4"|x"A5"|x"A6"|x"A7"|
+              x"A8"|x"A9"|x"AA"|x"AB"|x"AC"|x"AD"|x"AE"|x"AF"|
+              x"B0"|x"B1"|x"B2"|x"B3"|x"B4"|x"B5"|x"B6"|x"B7"|
+              x"B8"|x"B9"|x"BA"|x"BB"|x"BC"|x"BD"|x"BE"|x"BF" =>
+              case the_read_address(1 downto 0) is
+                when "00" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(7 downto 0);              
+                when "01" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(15 downto 8);
+                when "10" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(23 downto 16);
+                when "11" => read_data_copy <= reg_math_regs(to_integer(the_read_address(5 downto 2)))(31 downto 24);
+                when others => read_data_copy <= x"59";
+              end case;
+            when
+              --@IO:GS $D7C0-$D7CF - 16 Math function unit input A (3-0) and input B (7-4) selects
+              -- @IO:GS $D7C0.0-3 MATH:UNIT0INA Select which of the 16 32-bit math registers is input A for Math Function Unit 0.
+              -- @IO:GS $D7C0.4-7 MATH:UNIT0INB Select which of the 16 32-bit math registers is input B for Math Function Unit 0.
+              -- @IO:GS $D7C1.0-3 MATH:UNIT1INA Select which of the 16 32-bit math registers is input A for Math Function Unit 1.
+              -- @IO:GS $D7C1.4-7 MATH:UNIT1INB Select which of the 16 32-bit math registers is input B for Math Function Unit 1.
+              -- @IO:GS $D7C2.0-3 MATH:UNIT2INA Select which of the 16 32-bit math registers is input A for Math Function Unit 2.
+              -- @IO:GS $D7C2.4-7 MATH:UNIT2INB Select which of the 16 32-bit math registers is input B for Math Function Unit 2.
+              -- @IO:GS $D7C3.0-3 MATH:UNIT3INA Select which of the 16 32-bit math registers is input A for Math Function Unit 3.
+              -- @IO:GS $D7C3.4-7 MATH:UNIT3INB Select which of the 16 32-bit math registers is input B for Math Function Unit 3.
+              -- @IO:GS $D7C4.0-3 MATH:UNIT4INA Select which of the 16 32-bit math registers is input A for Math Function Unit 4.
+              -- @IO:GS $D7C4.4-7 MATH:UNIT4INB Select which of the 16 32-bit math registers is input B for Math Function Unit 4.
+              -- @IO:GS $D7C5.0-3 MATH:UNIT5INA Select which of the 16 32-bit math registers is input A for Math Function Unit 5.
+              -- @IO:GS $D7C5.4-7 MATH:UNIT5INB Select which of the 16 32-bit math registers is input B for Math Function Unit 5.
+              -- @IO:GS $D7C6.0-3 MATH:UNIT6INA Select which of the 16 32-bit math registers is input A for Math Function Unit 6.
+              -- @IO:GS $D7C6.4-7 MATH:UNIT6INB Select which of the 16 32-bit math registers is input B for Math Function Unit 6.
+              -- @IO:GS $D7C7.0-3 MATH:UNIT7INA Select which of the 16 32-bit math registers is input A for Math Function Unit 7.
+              -- @IO:GS $D7C7.4-7 MATH:UNIT7INB Select which of the 16 32-bit math registers is input B for Math Function Unit 7.
+              -- @IO:GS $D7C8.0-3 MATH:UNIT8INA Select which of the 16 32-bit math registers is input A for Math Function Unit 8.
+              -- @IO:GS $D7C8.4-7 MATH:UNIT8INB Select which of the 16 32-bit math registers is input B for Math Function Unit 8.
+              -- @IO:GS $D7C9.0-3 MATH:UNIT9INA Select which of the 16 32-bit math registers is input A for Math Function Unit 9.
+              -- @IO:GS $D7C9.4-7 MATH:UNIT9INB Select which of the 16 32-bit math registers is input B for Math Function Unit 9.
+              -- @IO:GS $D7CA.0-3 MATH:UNIT10INA Select which of the 16 32-bit math registers is input A for Math Function Unit 10.
+              -- @IO:GS $D7CA.4-7 MATH:UNIT10INB Select which of the 16 32-bit math registers is input B for Math Function Unit 10.
+              -- @IO:GS $D7CB.0-3 MATH:UNIT11INA Select which of the 16 32-bit math registers is input A for Math Function Unit 11.
+              -- @IO:GS $D7CB.4-7 MATH:UNIT11INB Select which of the 16 32-bit math registers is input B for Math Function Unit 11.
+              -- @IO:GS $D7CC.0-3 MATH:UNIT12INA Select which of the 16 32-bit math registers is input A for Math Function Unit 12.
+              -- @IO:GS $D7CC.4-7 MATH:UNIT12INB Select which of the 16 32-bit math registers is input B for Math Function Unit 12.
+              -- @IO:GS $D7CD.0-3 MATH:UNIT13INA Select which of the 16 32-bit math registers is input A for Math Function Unit 13.
+              -- @IO:GS $D7CD.4-7 MATH:UNIT13INB Select which of the 16 32-bit math registers is input B for Math Function Unit 13.
+              -- @IO:GS $D7CE.0-3 MATH:UNIT14INA Select which of the 16 32-bit math registers is input A for Math Function Unit 14.
+              -- @IO:GS $D7CE.4-7 MATH:UNIT14INB Select which of the 16 32-bit math registers is input B for Math Function Unit 14.
+              -- @IO:GS $D7CF.0-3 MATH:UNIT15INA Select which of the 16 32-bit math registers is input A for Math Function Unit 15.
+              -- @IO:GS $D7CF.4-7 MATH:UNIT15INB Select which of the 16 32-bit math registers is input B for Math Function Unit 15.
+              x"C0"|x"C1"|x"C2"|x"C3"|x"C4"|x"C5"|x"C6"|x"C7"|
+              x"C8"|x"C9"|x"CA"|x"CB"|x"CC"|x"CD"|x"CE"|x"CF" =>
+              read_data_copy <=
+                to_unsigned(reg_math_config(to_integer(the_read_address(3 downto 0))).source_b,4)
+                &to_unsigned(reg_math_config(to_integer(the_read_address(3 downto 0))).source_a,4);
+            when
+              -- @IO:GS $D7D0.0-3 MATH:UNIT0OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 0
+              -- @IO:GS $D7D0.4 - MATH:U0LOWOUT If set, the low-half of the output of Math Function Unit 0 is written to math register UNIT0OUT.
+              -- @IO:GS $D7D0.5 - MATH:U0HIOUT If set, the high-half of the output of Math Function Unit 0 is written to math register UNIT0OUT.
+              -- @IO:GS $D7D0.6 - MATH:U0ADD If set, Math Function Unit 0 acts as a 32-bit adder instead of 32-bit multiplier.
+              -- @IO:GS $D7D0.7 - MATH:U0LATCH If set, Math Function Unit 0's output is latched.
+              
+              -- @IO:GS $D7D1.0-3 MATH:UNIT1OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 1
+              -- @IO:GS $D7D1.4 - MATH:U1LOWOUT If set, the low-half of the output of Math Function Unit 1 is written to math register UNIT1OUT.
+              -- @IO:GS $D7D1.5 - MATH:U1HIOUT If set, the high-half of the output of Math Function Unit 1 is written to math register UNIT1OUT.
+              -- @IO:GS $D7D1.6 - MATH:U1ADD If set, Math Function Unit 1 acts as a 32-bit adder instead of 32-bit multiplier.
+              -- @IO:GS $D7D1.7 - MATH:U1LATCH If set, Math Function Unit 1's output is latched.
+              
+              -- @IO:GS $D7D2.0-3 MATH:UNIT2OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 2
+              -- @IO:GS $D7D2.4 - MATH:U2LOWOUT If set, the low-half of the output of Math Function Unit 2 is written to math register UNIT2OUT.
+              -- @IO:GS $D7D2.5 - MATH:U2HIOUT If set, the high-half of the output of Math Function Unit 2 is written to math register UNIT2OUT.
+              -- @IO:GS $D7D2.6 - MATH:U2ADD If set, Math Function Unit 2 acts as a 32-bit adder instead of 32-bit multiplier.
+              -- @IO:GS $D7D2.7 - MATH:U2LATCH If set, Math Function Unit 2's output is latched.
+              
+              -- @IO:GS $D7D3.0-3 MATH:UNIT3OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 3
+              -- @IO:GS $D7D3.4 - MATH:U3LOWOUT If set, the low-half of the output of Math Function Unit 3 is written to math register UNIT3OUT.
+              -- @IO:GS $D7D3.5 - MATH:U3HIOUT If set, the high-half of the output of Math Function Unit 3 is written to math register UNIT3OUT.
+              -- @IO:GS $D7D3.6 - MATH:U3ADD If set, Math Function Unit 3 acts as a 32-bit adder instead of 32-bit multiplier.
+              -- @IO:GS $D7D3.7 - MATH:U3LATCH If set, Math Function Unit 3's output is latched.
+              
+              -- @IO:GS $D7D4.0-3 MATH:UNIT4OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 4
+              -- @IO:GS $D7D4.4 - MATH:U4LOWOUT If set, the low-half of the output of Math Function Unit 4 is written to math register UNIT4OUT.
+              -- @IO:GS $D7D4.5 - MATH:U4HIOUT If set, the high-half of the output of Math Function Unit 4 is written to math register UNIT4OUT.
+              -- @IO:GS $D7D4.6 - MATH:U4ADD If set, Math Function Unit 4 acts as a 32-bit adder instead of 32-bit multiplier.
+              -- @IO:GS $D7D4.7 - MATH:U4LATCH If set, Math Function Unit 4's output is latched.
+              
+              -- @IO:GS $D7D5.0-3 MATH:UNIT5OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 5
+              -- @IO:GS $D7D5.4 - MATH:U5LOWOUT If set, the low-half of the output of Math Function Unit 5 is written to math register UNIT5OUT.
+              -- @IO:GS $D7D5.5 - MATH:U5HIOUT If set, the high-half of the output of Math Function Unit 5 is written to math register UNIT5OUT.
+              -- @IO:GS $D7D5.6 - MATH:U5ADD If set, Math Function Unit 5 acts as a 32-bit adder instead of 32-bit multiplier.
+              -- @IO:GS $D7D5.7 - MATH:U5LATCH If set, Math Function Unit 5's output is latched.
+              
+              -- @IO:GS $D7D6.0-3 MATH:UNIT6OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 6
+              -- @IO:GS $D7D6.4 - MATH:U6LOWOUT If set, the low-half of the output of Math Function Unit 6 is written to math register UNIT6OUT.
+              -- @IO:GS $D7D6.5 - MATH:U6HIOUT If set, the high-half of the output of Math Function Unit 6 is written to math register UNIT6OUT.
+              -- @IO:GS $D7D6.6 - MATH:U6ADD If set, Math Function Unit 6 acts as a 32-bit adder instead of 32-bit multiplier.
+              -- @IO:GS $D7D6.7 - MATH:U6LATCH If set, Math Function Unit 6's output is latched.
+              
+              -- @IO:GS $D7D7.0-3 MATH:UNIT7OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 7
+              -- @IO:GS $D7D7.4 - MATH:U7LOWOUT If set, the low-half of the output of Math Function Unit 7 is written to math register UNIT7OUT.
+              -- @IO:GS $D7D7.5 - MATH:U7HIOUT If set, the high-half of the output of Math Function Unit 7 is written to math register UNIT7OUT.
+              -- @IO:GS $D7D7.6 - MATH:U7ADD If set, Math Function Unit 7 acts as a 32-bit adder instead of 32-bit multiplier.
+              -- @IO:GS $D7D7.7 - MATH:U7LATCH If set, Math Function Unit 7's output is latched.
+              
+              -- @IO:GS $D7D8.0-3 MATH:UNIT8OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 8
+              -- @IO:GS $D7D8.4 - MATH:U8LOWOUT If set, the low-half of the output of Math Function Unit 8 is written to math register UNIT8OUT.
+              -- @IO:GS $D7D8.5 - MATH:U8HIOUT If set, the high-half of the output of Math Function Unit 8 is written to math register UNIT8OUT.
+              -- @IO:GS $D7D8.6 - MATH:U8ADD If set, Math Function Unit 8 acts as a 32-bit adder instead of 32-bit barrel-shifter.
+              -- @IO:GS $D7D8.7 - MATH:U8LATCH If set, Math Function Unit 8's output is latched.
+              
+              -- @IO:GS $D7D9.0-3 MATH:UNIT9OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit 9
+              -- @IO:GS $D7D9.4 - MATH:U9LOWOUT If set, the low-half of the output of Math Function Unit 9 is written to math register UNIT9OUT.
+              -- @IO:GS $D7D9.5 - MATH:U9HIOUT If set, the high-half of the output of Math Function Unit 9 is written to math register UNIT9OUT.
+              -- @IO:GS $D7D9.6 - MATH:U9ADD If set, Math Function Unit 9 acts as a 32-bit adder instead of 32-bit barrel-shifter.
+              -- @IO:GS $D7D9.7 - MATH:U9LATCH If set, Math Function Unit 9's output is latched.
+              
+              -- @IO:GS $D7DA.0-3 MATH:UNIT10OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit A
+              -- @IO:GS $D7DA.4 - MATH:UALOWOUT If set, the low-half of the output of Math Function Unit A is written to math register UNIT10OUT.
+              -- @IO:GS $D7DA.5 - MATH:UAHIOUT If set, the high-half of the output of Math Function Unit A is written to math register UNIT10OUT.
+              -- @IO:GS $D7DA.6 - MATH:UAADD If set, Math Function Unit A acts as a 32-bit adder instead of 32-bit barrel-shifter.
+              -- @IO:GS $D7DA.7 - MATH:UALATCH If set, Math Function Unit A's output is latched.
+              
+              -- @IO:GS $D7DB.0-3 MATH:UNIT11OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit B
+              -- @IO:GS $D7DB.4 - MATH:UBLOWOUT If set, the low-half of the output of Math Function Unit B is written to math register UNIT11OUT.
+              -- @IO:GS $D7DB.5 - MATH:UBHIOUT If set, the high-half of the output of Math Function Unit B is written to math register UNIT11OUT.
+              -- @IO:GS $D7DB.6 - MATH:UBADD If set, Math Function Unit B acts as a 32-bit adder instead of 32-bit barrel-shifter.
+              -- @IO:GS $D7DB.7 - MATH:UBLATCH If set, Math Function Unit B's output is latched.
+              
+              -- @IO:GS $D7DC.0-3 MATH:UNIT12OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit C
+              -- @IO:GS $D7DC.4 - MATH:UCLOWOUT If set, the low-half of the output of Math Function Unit C is written to math register UNIT12OUT.
+              -- @IO:GS $D7DC.5 - MATH:UCHIOUT If set, the high-half of the output of Math Function Unit C is written to math register UNIT12OUT.
+              -- @IO:GS $D7DC.6 - MATH:UCADD If set, Math Function Unit C acts as a 32-bit adder instead of 32-bit divider.
+              -- @IO:GS $D7DC.7 - MATH:UCLATCH If set, Math Function Unit C's output is latched.
+              
+              -- @IO:GS $D7DD.0-3 MATH:UNIT13OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit D
+              -- @IO:GS $D7DD.4 - MATH:UDLOWOUT If set, the low-half of the output of Math Function Unit D is written to math register UNIT13OUT.
+              -- @IO:GS $D7DD.5 - MATH:UDHIOUT If set, the high-half of the output of Math Function Unit D is written to math register UNIT13OUT.
+              -- @IO:GS $D7DD.6 - MATH:UDADD If set, Math Function Unit D acts as a 32-bit adder instead of 32-bit divider.
+              -- @IO:GS $D7DD.7 - MATH:UDLATCH If set, Math Function Unit D's output is latched.
+              
+              -- @IO:GS $D7DE.0-3 MATH:UNIT14OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit E
+              -- @IO:GS $D7DE.4 - MATH:UELOWOUT If set, the low-half of the output of Math Function Unit E is written to math register UNIT14OUT.
+              -- @IO:GS $D7DE.5 - MATH:UEHIOUT If set, the high-half of the output of Math Function Unit E is written to math register UNIT14OUT.
+              -- @IO:GS $D7DE.6 - MATH:UEADD If set, Math Function Unit E acts as a 32-bit adder instead of 32-bit divider.
+              -- @IO:GS $D7DE.7 - MATH:UELATCH If set, Math Function Unit E's output is latched.
+              
+              -- @IO:GS $D7DF.0-3 MATH:UNIT15OUT Select which of the 16 32-bit math registers receives the output of Math Function Unit F
+              -- @IO:GS $D7DF.4 - MATH:UFLOWOUT If set, the low-half of the output of Math Function Unit F is written to math register UNIT15OUT.
+              -- @IO:GS $D7DF.5 - MATH:UFHIOUT If set, the high-half of the output of Math Function Unit F is written to math register UNIT15OUT.
+              -- @IO:GS $D7DF.6 - MATH:UFADD If set, Math Function Unit F acts as a 32-bit adder instead of 32-bit divider.
+              -- @IO:GS $D7DF.7 - MATH:UFLATCH If set, Math Function Unit F's output is latched.
+              
+              x"D0"|x"D1"|x"D2"|x"D3"|x"D4"|x"D5"|x"D6"|x"D7"|
+              x"D8"|x"D9"|x"DA"|x"DB"|x"DC"|x"DD"|x"DE"|x"DF" =>
+              read_data_copy <=
+                reg_math_config(to_integer(the_read_address(3 downto 0))).latched
+                &reg_math_config(to_integer(the_read_address(3 downto 0))).do_add
+                &reg_math_config(to_integer(the_read_address(3 downto 0))).output_high
+                &reg_math_config(to_integer(the_read_address(3 downto 0))).output_low
+                &to_unsigned(reg_math_config(to_integer(the_read_address(3 downto 0))).output,4);
+              -- @IO:GS $D7E0 MATH:LATCHINT Latch interval for latched outputs (in CPU cycles)
+              -- $D7E1 is documented higher up
+            when x"E0" => read_data_copy <= reg_math_latch_interval;
+            when x"E1" => read_data_copy <= math_unit_flags;
+            -- @IO:GS $D7E2 MATH:RESERVED Reserved
+            -- @IO:GS $D7E3 MATH:RESERVED Reserved
+            --@IO:GS $D7E4 MATH:ITERCNT Iteration Counter (32 bit)
+            --@IO:GS $D7E5 MATH:ITERCNT Iteration Counter (32 bit)
+            --@IO:GS $D7E6 MATH:ITERCNT Iteration Counter (32 bit)
+            --@IO:GS $D7E7 MATH:ITERCNT Iteration Counter (32 bit)
+            when x"e4" => read_data_copy <= reg_math_cycle_counter(7 downto 0);
+            when x"e5" => read_data_copy <= reg_math_cycle_counter(15 downto 8);
+            when x"e6" => read_data_copy <= reg_math_cycle_counter(23 downto 16);
+            when x"e7" => read_data_copy <= reg_math_cycle_counter(31 downto 24);
+            --@IO:GS $D7E8 MATH:ITERCMP Math iteration counter comparator (32 bit)
+            --@IO:GS $D7E9 MATH:ITERCMP Math iteration counter comparator (32 bit)
+            --@IO:GS $D7EA MATH:ITERCMP Math iteration counter comparator (32 bit)
+            --@IO:GS $D7EB MATH:ITERCMP Math iteration counter comparator (32 bit)
+            when x"e8" => read_data_copy <= reg_math_cycle_compare(7 downto 0);
+            when x"e9" => read_data_copy <= reg_math_cycle_compare(15 downto 8);
+            when x"ea" => read_data_copy <= reg_math_cycle_compare(23 downto 16);
+            when x"eb" => read_data_copy <= reg_math_cycle_compare(31 downto 24);
+
+            --@IO:GS $D7F2 CPU:PHIPERFRAME Count the number of PHI cycles per video frame (LSB)              
+            --@IO:GS $D7F5 CPU:PHIPERFRAME Count the number of PHI cycles per video frame (MSB)
+            when x"f2" => read_data_copy <= last_cycles_per_frame(7 downto 0);
+            when x"f3" => read_data_copy <= last_cycles_per_frame(15 downto 8);
+            when x"f4" => read_data_copy <= last_cycles_per_frame(23 downto 16);
+            when x"f5" => read_data_copy <= last_cycles_per_frame(31 downto 24);
+            --@IO:GS $D7F6 CPU:CYCPERFRAME Count the number of usable (proceed=1) CPU cycles per video frame (LSB)              
+            --@IO:GS $D7F9 CPU:CYCPERFRAME Count the number of usable (proceed=1) CPU cycles per video frame (MSB)
+            when x"f6" => read_data_copy <= last_proceeds_per_frame(7 downto 0);
+            when x"f7" => read_data_copy <= last_proceeds_per_frame(15 downto 8);
+            when x"f8" => read_data_copy <= last_proceeds_per_frame(23 downto 16);
+            when x"f9" => read_data_copy <= last_proceeds_per_frame(31 downto 24);
+            -- @IO:GS $D7FA CPU:FRAMECOUNT Count number of elapsed video frames
+            when x"fa" => read_data_copy <= frame_counter(7 downto 0);
+            when x"fb" => read_data_copy <= "000000" & cartridge_enable & "0";
+            when x"fc" => read_data_copy <= unsigned(chipselect_enables);
+            when x"fd" =>
+              report "Reading $D7FD";
+              read_data_copy_temp(7) := force_exrom;
+              read_data_copy_temp(6) := force_game;
+              read_data_copy_temp(5) := gated_exrom;
+              read_data_copy_temp(4) := gated_game;
+              read_data_copy_temp(3) := exrom;
+              read_data_copy_temp(2) := game;
+              read_data_copy_temp(1) := cartridge_enable;              
+              read_data_copy_temp(0) := '1'; -- Set if power is on, clear if power is off
+              read_data_copy <= read_data_copy_temp;
+            when x"fe" =>
+              read_data_copy_temp(0) := slow_prefetch_enable;
+              read_data_copy_temp(1) := ocean_cart_mode;
+              read_data_copy_temp(7 downto 2) := (others => '0');
+              read_data_copy <= read_data_copy_temp;
+            when others => read_data_copy <= x"ff";
+          end case;
+        when HypervisorRegister =>
+          report "HYPERPORT: Reading hypervisor register";
+          case hyperport_num is
+            when "000000" => read_data_copy <= hyper_a;
+            when "000001" => read_data_copy <= hyper_x;
+            when "000010" => read_data_copy <= hyper_y;
+            when "000011" => read_data_copy <= hyper_z;
+            when "000100" => read_data_copy <= hyper_b;
+            when "000101" => read_data_copy <= hyper_sp;
+            when "000110" => read_data_copy <= hyper_sph;
+            when "000111" => read_data_copy <= hyper_p;
+            when "001000" => read_data_copy <= hyper_pc(7 downto 0);
+            when "001001" => read_data_copy <= hyper_pc(15 downto 8);                           
+            when "001010" =>
+              read_data_copy <= unsigned(std_logic_vector(hyper_map_low)
+                              & std_logic_vector(hyper_map_offset_low(11 downto 8)));
+            when "001011" => read_data_copy <= hyper_map_offset_low(7 downto 0);
+            when "001100" =>
+              read_data_copy <= unsigned(std_logic_vector(hyper_map_high)
+                              & std_logic_vector(hyper_map_offset_high(11 downto 8)));
+            when "001101" => read_data_copy <= hyper_map_offset_high(7 downto 0);
+            when "001110" => read_data_copy <= hyper_mb_low;
+            when "001111" => read_data_copy <= hyper_mb_high;
+            when "010000" => read_data_copy <= hyper_port_00;
+            when "010001" => read_data_copy <= hyper_port_01;
+            when "010010" => read_data_copy <= hyper_iomode;
+            when "010011" => read_data_copy <= hyper_dmagic_src_mb;
+            when "010100" => read_data_copy <= hyper_dmagic_dst_mb;
+            when "010101" => read_data_copy <= hyper_dmagic_list_addr(7 downto 0);
+            when "010110" => read_data_copy <= hyper_dmagic_list_addr(15 downto 8);
+            when "010111" => read_data_copy <= hyper_dmagic_list_addr(23 downto 16);
+            when "011000" =>
+              read_data_copy <= to_unsigned(0,4)&hyper_dmagic_list_addr(27 downto 24);
+            when "011001" =>
+              read_data_copy <= "000000"&virtualise_sd1&virtualise_sd0;
+              
+            -- Virtual memory page registers here
+            when "011101" =>
+              read_data_copy <= unsigned(std_logic_vector(reg_pagenumber(1 downto 0))
+                              &"0"
+                              &reg_pageactive
+                              &reg_pages_dirty);
+            when "011110" => read_data_copy <= reg_pagenumber(9 downto 2);
+            when "011111" => read_data_copy <= reg_pagenumber(17 downto 10);
+            when "100000" => read_data_copy <= reg_page0_logical(7 downto 0);
+            when "100001" => read_data_copy <= reg_page0_logical(15 downto 8);
+            when "100010" => read_data_copy <= reg_page0_physical(7 downto 0);
+            when "100011" => read_data_copy <= reg_page0_physical(15 downto 8);
+            when "100100" => read_data_copy <= reg_page1_logical(7 downto 0);
+            when "100101" => read_data_copy <= reg_page1_logical(15 downto 8);
+            when "100110" => read_data_copy <= reg_page1_physical(7 downto 0);
+            when "100111" => read_data_copy <= reg_page1_physical(15 downto 8);
+            when "101000" => read_data_copy <= reg_page2_logical(7 downto 0);
+            when "101001" => read_data_copy <= reg_page2_logical(15 downto 8);
+            when "101010" => read_data_copy <= reg_page2_physical(7 downto 0);
+            when "101011" => read_data_copy <= reg_page2_physical(15 downto 8);
+            when "101100" => read_data_copy <= reg_page3_logical(7 downto 0);
+            when "101101" => read_data_copy <= reg_page3_logical(15 downto 8);
+            when "101110" => read_data_copy <= reg_page3_physical(7 downto 0);
+            when "101111" => read_data_copy <= reg_page3_physical(15 downto 8);
+            when "110000" => read_data_copy <= georam_page(19 downto 12);
+            when "110001" => read_data_copy <= georam_blockmask;
+            --$D672 - Protected Hardware
+            when "110010" => read_data_copy <= hyper_protected_hardware;
+                             
+            when "111100" => -- $D640+$3C
+              -- @IO:GS $D67C.6 - (read) Hypervisor internal immediate UART monitor busy flag (can write when 0)
+              -- @IO:GS $D67C.7 - (read) Hypervisor serial output from UART monitor busy flag (can write when 0)
+              -- so we have an immediate busy flag that we manage separately.
+              read_data_copy <= "000000"
+                & immediate_monitor_char_busy
+                & monitor_char_busy;
+
+            when "111101" =>
+              -- this section $D67D
+              read_data_copy <= nmi_pending
+                & iec_bus_active
+                & force_4502
+                & force_fast
+                & speed_gate_enable_internal
+                & rom_writeprotect
+                & flat32_enabled
+                & cartridge_enable;                        
+            when "111110" =>
+              -- @IO:GS $D67E.7 (read) Hypervisor upgraded flag. Writing any value here sets this bit until next power on (i.e., it surives reset).
+              -- @IO:GS $D67E.6 (read) Hypervisor read /EXROM signal from cartridge.
+              -- @IO:GS $D67E.5 (read) Hypervisor read /GAME signal from cartridge.
+              read_data_copy <= hypervisor_upgraded
+                & exrom
+                & game
+                & "00000";
+            when "111111" => read_data_copy <= x"48"; -- 'H' for Hypermode
+            when others => read_data_copy <= x"FF";
+          end case;
+
+        when CPUPort =>
+          report "reading from CPU port" severity note;
+          case cpuport_num is
+            when x"0" => read_data_copy <= cpuport_ddr;
+            when x"1" => read_data_copy <= cpuport_value;
+            when x"2" => read_data_copy <= rec_status;
+            when x"3" => read_data_copy <= vdc_status;
+            when x"4" =>
+              -- Read other VDC registers.
+              read_data_copy <= x"ff";
+            when x"5" => read_data_copy <= vdc_mem_addr(7 downto 0);
+            when x"6" => read_data_copy <= vdc_mem_addr(15 downto 8);
+            when x"7" => read_data_copy <= vdc_reg_num(7 downto 0);
+            when others => read_data_copy <= x"ff";
+          end case;
+        when Shadow =>
+          report "reading from shadow RAM" severity note;
+          read_data_copy <= shadow_rdata;
+        when ColourRAM =>
+          report "reading colour RAM fastio byte $" & to_hstring(fastio_vic_rdata) severity note;
+          read_data_copy <= unsigned(fastio_colour_ram_rdata);
+        when VICIV =>
+          report "reading VIC fastio byte $" & to_hstring(fastio_vic_rdata) severity note;
+          read_data_copy <= unsigned(fastio_vic_rdata);
+        when FastIO =>
+          report "reading normal fastio byte $" & to_hstring(fastio_rdata) severity note;
+          read_data_copy <= unsigned(fastio_rdata);
+        when Hyppo =>
+          report "reading hyppo fastio byte $" & to_hstring(hyppo_rdata) severity note;
+          read_data_copy <= unsigned(hyppo_rdata);
+        when SlowRAM =>
+          report "reading slow RAM data. Word is $" & to_hstring(slow_access_rdata) severity note;
+          read_data_copy <= unsigned(slow_access_rdata);
+        when SlowRAMPreFetch =>
+          report "reading slow prefetched RAM data. Word is $" & to_hstring(slow_access_rdata) severity note;
+          read_data_copy <= unsigned(slow_prefetch_data);          
+        when Unmapped =>
+          report "accessing unmapped memory" severity note;
+          read_data_copy <= x"A0";                     -- make unmmapped memory obvious
+      end case;
+    
       
                                         -- By default we are doing nothing new.
       pc_inc := '0'; pc_dec := '0'; dec_sp := '0';
