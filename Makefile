@@ -71,6 +71,7 @@ CBMCONVERT=	cbmconvert/cbmconvert
 ASSETS=		assets
 SRCDIR=		src
 BINDIR=		bin
+TOOLDIR=	$(SRCDIR)/tools
 UTILDIR=	$(SRCDIR)/utilities
 TESTDIR=	$(SRCDIR)/tests
 VHDLSRCDIR=	$(SRCDIR)/vhdl
@@ -96,7 +97,6 @@ UTILITIES=	$(UTILDIR)/etherload.prg \
 		d81-files/* \
 		$(UTILDIR)/diskmenu.prg
 
-TOOLDIR=	$(SRCDIR)/tools
 TOOLS=	$(TOOLDIR)/etherhyppo/etherhyppo \
 	$(TOOLDIR)/etherload/etherload \
 	$(TOOLDIR)/hotpatch/hotpatch \
