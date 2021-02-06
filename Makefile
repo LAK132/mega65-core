@@ -78,6 +78,8 @@ VHDLSRCDIR=	$(SRCDIR)/vhdl
 VERILOGSRCDIR=	$(SRCDIR)/verilog
 
 SDCARD_DIR=	sdcard-files
+$(BINDIR) $(SDCARD_DIR):
+	mkdir -p $@
 
 # if you want your PRG to appear on "MEGA65.D81", then put your PRG in "./d81-files"
 # ie: COMMANDO.PRG
