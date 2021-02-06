@@ -8,38 +8,40 @@ CC=	gcc
 
 ifdef USE_LOCAL_OPHIS
 	# use locally installed binary (requires 'ophis' to be in the $PATH)
-	OPHIS=	ophis
-	OPHISOPT=	-4
-	OPHIS_MON= ophis -c
+	OPHIS_PREFIX=
 	OPHIS_DEPEND=
 else
 	# use the binary built from the submodule
-	OPHIS=	Ophis/bin/ophis
-	OPHISOPT=	-4
-	OPHIS_MON= Ophis/bin/ophis -c
+	OPHIS_PREFIX=$(PWD)/Ophis/bin/
 	OPHIS_DEPEND=$(OPHIS)
 endif
 
+OPHIS=	$(OPHIS_PREFIX)ophis
+OPHISOPT=	-4
+OPHIS_MON= $(OPHIS) -c
 
 ifdef USE_LOCAL_ACME
 	# use locally installed binary (requires 'acme' to be in the $PATH)
-	ACME=	acme
+	ACME_PREFIX=
 	ACME_DEPEND=
 else
 	# use the binary built from the submodule
-	ACME=src/tools/acme/src/acme
+	ACME_PREFIX=$(TOOLDIR)/acme/src/
 	ACME_DEPEND=$(ACME)
 endif
 
+ACME= $(ACME_PREFIX)acme
 
 VIVADO=	./vivado_wrapper
 
 ifdef USE_LOCAL_CC65
 	# use locally installed binary (requires cc65 to be in the $PATH)
 	CC65_PREFIX=
+	CC65_DEPEND=
 else
 	# use the binary built from the submodule
 	CC65_PREFIX=$(PWD)/cc65/bin/
+	CC65_DEPEND=$(CC65)
 endif
 
 CC65=  $(CC65_PREFIX)cc65
@@ -47,24 +49,31 @@ CA65=  $(CC65_PREFIX)ca65 --cpu 4510
 LD65=  $(CC65_PREFIX)ld65 -t none
 CL65=  $(CC65_PREFIX)cl65 --config src/tests/vicii.cfg
 
-ifdef USE_LOCAL_CC65
-	CC65_DEPEND=
-else
-	CC65_DEPEND=$(CC65)
-endif
 
 
 
 ifdef USE_LOCAL_GHDL
 	# use locally installed binary (requires 'ghdl' to be in the $PATH)
-	GHDL=	ghdl
+	GHDL_PREFIX=
 	GHDL_DEPEND=
 else
 	# use the binary built from the submodule
-	GHDL=	ghdl/build/bin/ghdl
+	GHDL_PREFIX=ghdl/build/bin/
 	GHDL_DEPEND=$(GHDL)
 endif
+GHDL=$(GHDL_PREFIX)ghdl
 
+ifdef USE_LOCAL_EXOMIZER
+	# use locally install binary (requires 'exomizer' be in the $PATH)
+	EXOMIZER_PREFIX=
+	EXOMIZER_DEPEND=
+else
+	# use the binary built from the submodule
+	EXOMIZER_PREFIX=$(PWD)/$(TOOLDIR)/exomizer/
+	EXOMIZER_DEPEND=$(EXOMIZER)
+endif
+
+EXOMIZER=$(EXOMIZER_PREFIX)exomizer
 
 CBMCONVERT=	cbmconvert/cbmconvert
 
@@ -112,50 +121,69 @@ TOOLS=	$(TOOLDIR)/etherhyppo/etherhyppo \
 
 all:	$(SDCARD_DIR)/MEGA65.D81 $(BINDIR)/mega65r1.mcs $(BINDIR)/nexys4.mcs $(BINDIR)/nexys4ddr.mcs $(TOOLDIR)/monitor_load $(TOOLDIR)/mega65_ftp $(TOOLDIR)/monitor_save $(SDCARD_DIR)/FREEZER.M65 $(SDCARD_DIR)/AUDIOMIX.M65 $(SDCARD_DIR)/C64THUMB.M65 $(SDCARD_DIR)/C65THUMB.M65
 
-$(SDCARD_DIR)/FREEZER.M65 $(SDCARD_DIR)/AUDIOMIX.M65 $(SDCARD_DIR)/C64THUMB.M65 $(SDCARD_DIR)/C65THUMB.M65:
-	git submodule init
-	git submodule update
-	( cd src/mega65-freezemenu && make FREEZER.M65 AUDIOMIX.M65 C64THUMB.M65 C65THUMB.M65 USE_LOCAL_CC65=$(USE_LOCAL_CC65))
-	cp src/mega65-freezemenu/FREEZER.M65 $(SDCARD_DIR)
-	cp src/mega65-freezemenu/AUDIOMIX.M65 $(SDCARD_DIR)
-	cp src/mega65-freezemenu/C64THUMB.M65 $(SDCARD_DIR)
-	cp src/mega65-freezemenu/C65THUMB.M65 $(SDCARD_DIR)
+$(SDCARD_DIR)/FREEZER.M65 $(SDCARD_DIR)/AUDIOMIX.M65 $(SDCARD_DIR)/C64THUMB.M65 $(SDCARD_DIR)/C65THUMB.M65: | $(SDCARD_DIR)
+	git submodule update --init $(SRCDIR)/mega65-freezemenu
+	( cd $(SRCDIR)/mega65-freezemenu && make FREEZER.M65 AUDIOMIX.M65 C64THUMB.M65 C65THUMB.M65 USE_LOCAL_CC65=1 CC65=$(CC65_PREFIX)cc65 CL65=$(CC65_PREFIX)cl65 )
+	cp $(SRCDIR)/mega65-freezemenu/FREEZER.M65 $(SDCARD_DIR)
+	cp $(SRCDIR)/mega65-freezemenu/AUDIOMIX.M65 $(SDCARD_DIR)
+	cp $(SRCDIR)/mega65-freezemenu/C64THUMB.M65 $(SDCARD_DIR)
+	cp $(SRCDIR)/mega65-freezemenu/C65THUMB.M65 $(SDCARD_DIR)
 
 $(CBMCONVERT):
-	git submodule init
-	git submodule update
+	git submodule update --init cbmconvert
 	( cd cbmconvert && make -f Makefile.unix )
 
-cc65/bin/cc65:
+$(CC65):
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	git submodule init
-	git submodule update
+ifdef USE_LOCAL_CC65
+	$(warning Using locally installed CC65 because USE_LOCAL_CC65 is set.)
+else
+	git submodule update --init cc65
 	( cd cc65 && make -j 8 )
+endif
 
 
-Ophis/bin/ophis:
+$(OPHIS):
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	git submodule init Ophis
-	git submodule update Ophis
-	# Ophis submodule has the executable pre-built at Ophis/bin/ophis
+ifdef USE_LOCAL_OPHIS
+	$(warning Using locallu installed Ophis because USE_LOCAL_OPHIS is set.)
+else
+	git submodule update --init Ophis
+endif
 
 
-src/tools/acme/src/acme:
+$(ACME):
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	git submodule init
-	git submodule update
-	( cd src/tools/acme/src && make -j 8 )
+ifdef USE_LOCAL_ACME
+	$(warning Using locally installed Acme because USE_LOCAL_ACME is set.)
+else
+	git submodule update --init $(TOOLDIR)/acme
+	( cd $(TOOLDIR)/acme/src && $(MAKE) -j8 )
+endif
 
 
-ghdl/build/bin/ghdl:
+$(GHDL):
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	git submodule init
-	git submodule update
-	( cd ghdl && ./configure --prefix=./build && make -j 8 && make install )
+ifdef USE_LOCAL_GHDL
+	$(warning Using locally installed GHDL because USE_LOCAL_GHDL is set.)
+else
+	git submodule update --init ghdl
+	( cd ghdl && ./configure --prefix=./build && $(MAKE) -j8 && $(MAKE) install )
+endif
+
+
+$(EXOMIZER): Makefile
+	$(warning =============================================================)
+	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
+ifdef USE_LOCAL_EXOMIZER
+	$(warning Using locally installed Exomizer because USE_LOCAL_EXOMIZER is set.)
+else
+	( cd $(TOOLDIR)/exomizer/src && $(MAKE) exomizer && cp exomizer ../ )
+endif
 
 # Not quite yet with Vivado...
 # $(BINDIR)/nexys4.mcs $(BINDIR)/nexys4ddr.mcs $(BINDIR)/lcd4ddr.mcs $(BINDIR)/touch_test.mcs
@@ -597,25 +625,22 @@ vfsimulate:	$(GHDL_DEPEND) $(VHDLSRCDIR)/frame_test.vhdl $(VHDLSRCDIR)/video_fra
 # =======================================================================
 
 # ============================
-$(SDCARD_DIR)/CHARROM.M65:
+$(SDCARD_DIR)/CHARROM.M65: | $(SDCARD_DIR)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $(SDCARD_DIR)/CHARROM.M65)
-	mkdir -p $(SDCARD_DIR)
 	wget -O $(SDCARD_DIR)/CHARROM.M65 http://www.zimmers.net/anonftp/pub/cbm/firmware/characters/c65-caff.bin
 
 # ============================
-$(SDCARD_DIR)/MEGA65.ROM:
+$(SDCARD_DIR)/MEGA65.ROM: | $(SDCARD_DIR)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $(SDCARD_DIR)/MEGA65.ROM)
-	mkdir -p $(SDCARD_DIR)
 	wget -O $(SDCARD_DIR)/MEGA65.ROM http://www.zimmers.net/anonftp/pub/cbm/firmware/computers/c65/910111-390488-01.bin
 
 # ============================, print-warn, clean target
 # verbose, for 1581 format, overwrite
-$(SDCARD_DIR)/MEGA65.D81:	$(UTILITIES) $(CBMCONVERT)
+$(SDCARD_DIR)/MEGA65.D81:	$(UTILITIES) $(CBMCONVERT) | $(SDCARD_DIR)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $(SDCARD_DIR)/MEGA65.D81)
-	mkdir -p $(SDCARD_DIR)
 	$(CBMCONVERT) -v2 -D8o $(SDCARD_DIR)/MEGA65.D81 $(UTILITIES)
 
 
@@ -652,12 +677,12 @@ $(TESTDIR)/vicii.prg:       $(TESTDIR)/vicii.c $(TESTDIR)/vicii_asm.s $(CC65_DEP
 $(TESTDIR)/pulseoxy.prg:       $(TESTDIR)/pulseoxy.c $(CC65_DEPEND)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	$(CL65) -O -o $*.prg --mapfile $*.map $< 
+	$(CL65) -O -o $*.prg --mapfile $*.map $<
 
 $(TESTDIR)/qspitest.prg:       $(TESTDIR)/qspitest.c $(CC65_DEPEND)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	$(CL65) -O -o $*.prg --mapfile $*.map $< 
+	$(CL65) -O -o $*.prg --mapfile $*.map $<
 
 $(TESTDIR)/unicorns.prg:       $(TESTDIR)/unicorns.c $(CC65_DEPEND)
 	$(warning =============================================================)
@@ -667,7 +692,7 @@ $(TESTDIR)/unicorns.prg:       $(TESTDIR)/unicorns.c $(CC65_DEPEND)
 $(TESTDIR)/eth_mdio.prg:       $(TESTDIR)/eth_mdio.c $(CC65_DEPEND)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	$(CL65) -O -o $*.prg --mapfile $*.map $< 
+	$(CL65) -O -o $*.prg --mapfile $*.map $<
 
 $(TESTDIR)/instructiontiming.prg:       $(TESTDIR)/instructiontiming.c $(TESTDIR)/instructiontiming_asm.s $(CC65_DEPEND)
 	$(warning =============================================================)
@@ -679,15 +704,19 @@ $(UTILDIR)/mega65_config.prg:       $(UTILDIR)/mega65_config.o $(CC65_DEPEND)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
 	$(LD65) $< --mapfile $*.map -o $*.prg
 
-$(UTILDIR)/megaflash-a100t.prg:       $(UTILDIR)/megaflash.c $(CC65_DEPEND)
+LIBC_CC65_DEPEND = $(SRCDIR)/mega65-libc/cc65
+$(LIBC_CC65_DEPEND):
+	git submodule update --init $(SRCDIR)/mega65-libc
+
+$(UTILDIR)/megaflash-a100t.prg:       $(UTILDIR)/megaflash.c $(CC65_DEPEND) | $(LIBC_CC65_DEPEND)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
-	$(CL65) -I $(SRCDIR)/mega65-libc/cc65/include -DA100T -O -o $(UTILDIR)/megaflash-a100t.prg --mapfile $*.map $<  $(SRCDIR)/mega65-libc/cc65/src/memory.c $(SRCDIR)/mega65-libc/cc65/src/hal.c
+	$(CL65) -I$(SRCDIR)/mega65-libc/cc65/include -DA100T -O -o $(UTILDIR)/megaflash-a100t.prg --mapfile $*.map $<  $(SRCDIR)/mega65-libc/cc65/src/memory.c $(SRCDIR)/mega65-libc/cc65/src/hal.c
 	# Make sure that result is not too big.  Top must be below <$8000 after loading, so that
 	# it doesn't overlap with hypervisor
 	test -n "$$(find $(UTILDIR)/megaflash-a100t.prg -size -29000c)"
 
-$(SDCARD_DIR)/ONBOARD.M65:       $(UTILDIR)/onboard.c $(CC65_DEPEND)
+$(SDCARD_DIR)/ONBOARD.M65:       $(UTILDIR)/onboard.c $(CC65_DEPEND) | $(LIBC_CC65_DEPEND) $(SDCARD_DIR)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
 	$(CL65) -I $(SRCDIR)/mega65-libc/cc65/include -DA100T -O -o $(SDCARD_DIR)/ONBOARD.M65 --mapfile $*.map $<  $(SRCDIR)/mega65-libc/cc65/src/memory.c $(SRCDIR)/mega65-libc/cc65/src/hal.c $(SRCDIR)/mega65-libc/cc65/src/time.c $(SRCDIR)/mega65-libc/cc65/src/targets.c
@@ -697,7 +726,7 @@ $(SDCARD_DIR)/ONBOARD.M65:       $(UTILDIR)/onboard.c $(CC65_DEPEND)
 
 
 
-$(UTILDIR)/megaflash-a200t.prg:       $(UTILDIR)/megaflash.c $(CC65_DEPEND)
+$(UTILDIR)/megaflash-a200t.prg:       $(UTILDIR)/megaflash.c $(CC65_DEPEND) | $(LIBC_CC65_DEPEND)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
 	$(CL65) -I $(SRCDIR)/mega65-libc/cc65/include -DA200T -O -o $(UTILDIR)/megaflash-a200t.prg --mapfile $*.map $< $(SRCDIR)/mega65-libc/cc65/src/memory.c $(SRCDIR)/mega65-libc/cc65/src/hal.c
@@ -705,7 +734,7 @@ $(UTILDIR)/megaflash-a200t.prg:       $(UTILDIR)/megaflash.c $(CC65_DEPEND)
 	# it doesn't overlap with hypervisor
 	test -n "$$(find $(UTILDIR)/megaflash-a200t.prg -size -29000c)"
 
-$(UTILDIR)/hyperramtest.prg:       $(UTILDIR)/hyperramtest.c $(wildcard $(SRCDIR)/mega65-libc/cc65/src/*.c) $(wildcard $(SRCDIR)/mega65-libc/cc65/src/*.s) $(wildcard $(SRCDIR)/mega65-libc/cc65/include/*.h) $(CC65_DEPEND)
+$(UTILDIR)/hyperramtest.prg:       $(UTILDIR)/hyperramtest.c $(wildcard $(SRCDIR)/mega65-libc/cc65/src/*.c) $(wildcard $(SRCDIR)/mega65-libc/cc65/src/*.s) $(wildcard $(SRCDIR)/mega65-libc/cc65/include/*.h) $(CC65_DEPEND) | $(LIBC_CC65_DEPEND)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
 	$(CL65) -I $(SRCDIR)/mega65-libc/cc65/include -O -o $*.prg --mapfile $*.map $< $(wildcard $(SRCDIR)/mega65-libc/cc65/src/*.c) $(wildcard $(SRCDIR)/mega65-libc/cc65/src/*.s)
@@ -715,7 +744,7 @@ $(UTILDIR)/i2clist.prg:       $(UTILDIR)/i2clist.c $(CC65_DEPEND)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
 	$(CL65) $< --mapfile $*.map -o $*.prg
 
-$(UTILDIR)/i2cstatus.prg:       $(UTILDIR)/i2cstatus.c $(SRCDIR)/mega65-libc/cc65/src/*.c $(SRCDIR)/mega65-libc/cc65/src/*.s $(SRCDIR)/mega65-libc/cc65/include/*.h $(CC65_DEPEND)
+$(UTILDIR)/i2cstatus.prg:       $(UTILDIR)/i2cstatus.c $(SRCDIR)/mega65-libc/cc65/src/*.c $(SRCDIR)/mega65-libc/cc65/src/*.s $(SRCDIR)/mega65-libc/cc65/include/*.h $(CC65_DEPEND) | $(LIBC_CC65_DEPEND)
 	$(warning =============================================================)
 	$(warning ~~~~~~~~~~~~~~~~> Making: $@)
 	$(CL65) -I $(SRCDIR)/mega65-libc/cc65/include -O -o $*.prg --mapfile $*.map $<  $(SRCDIR)/mega65-libc/cc65/src/*.c $(SRCDIR)/mega65-libc/cc65/src/*.s
@@ -741,7 +770,8 @@ $(UTILDIR)/diskmenu.prg:       $(UTILDIR)/diskmenuprg.o $(CC65_DEPEND)
 	$(LD65) $< --mapfile $*.map -o $*.prg
 
 $(SRCDIR)/mega65-fdisk/m65fdisk.prg:
-	( cd $(SRCDIR)/mega65-fdisk ; make  USE_LOCAL_CC65=$(USE_LOCAL_CC65) m65fdisk.prg)  
+	git submodule update --init $(SRCDIR)/mega65-fdisk
+	( cd $(SRCDIR)/mega65-fdisk && make USE_LOCAL_CC65=1 CC65=$(CC65_PREFIX)cc65 CL65=$(CC65_PREFIX)cl65 )
 
 $(BINDIR)/border.prg: 	$(SRCDIR)/border.a65 $(OPHIS_DEPEND)
 	$(warning =============================================================)
@@ -792,16 +822,13 @@ $(SRCDIR)/open-roms/bin/mega65.rom:	$(SRCDIR)/open-roms/assets/8x8font.png
 	( cd $(SRCDIR)/open-roms ; make bin/mega65.rom )
 
 $(SRCDIR)/open-roms/assets/8x8font.png:
-	git submodule init
-	git submodule update
-	( cd $(SRCDIR)/open-roms ; git submodule init ; git submodule update )
+	git submodule update --init $(SRCDIR)/open-roms
+	( cd $(SRCDIR)/open-roms && git submodule update --init )
 
 $(VHDLSRCDIR)/shadowram-a100t.vhdl:	$(TOOLDIR)/mempacker/mempacker_new $(SDCARD_DIR)/BANNER.M65 $(ASSETS)/alphatest.bin Makefile $(SDCARD_DIR)/FREEZER.M65  $(SRCDIR)/open-roms/bin/mega65.rom $(UTILDIR)/megaflash-a100t.prg $(SDCARD_DIR)/ONBOARD.M65
-	mkdir -p $(SDCARD_DIR)
 	$(TOOLDIR)/mempacker/mempacker_new -n shadowram -s 393215 -f $(VHDLSRCDIR)/shadowram-a100t.vhdl $(SDCARD_DIR)/BANNER.M65@57D00 $(SDCARD_DIR)/FREEZER.M65@12000 $(SRCDIR)/open-roms/bin/mega65.rom@20000 $(SDCARD_DIR)/ONBOARD.M65@40000 $(UTILDIR)/megaflash-a100t.prg@50000
 
 $(VHDLSRCDIR)/shadowram-a200t.vhdl:	$(TOOLDIR)/mempacker/mempacker_new $(SDCARD_DIR)/BANNER.M65 $(ASSETS)/alphatest.bin Makefile $(SDCARD_DIR)/FREEZER.M65  $(SRCDIR)/open-roms/bin/mega65.rom $(UTILDIR)/megaflash-a200t.prg $(SDCARD_DIR)/ONBOARD.M65
-	mkdir -p $(SDCARD_DIR)
 	$(TOOLDIR)/mempacker/mempacker_new -n shadowram -s 393215 -f $(VHDLSRCDIR)/shadowram-a200t.vhdl $(SDCARD_DIR)/BANNER.M65@57D00 $(SDCARD_DIR)/FREEZER.M65@12000 $(SRCDIR)/open-roms/bin/mega65.rom@20000 $(SDCARD_DIR)/ONBOARD.M65@40000 $(UTILDIR)/megaflash-a200t.prg@50000
 
 $(VERILOGSRCDIR)/monitor_mem.v:	$(TOOLDIR)/mempacker/mempacker_v $(BINDIR)/monitor.m65
@@ -813,16 +840,16 @@ $(VHDLSRCDIR)/oskmem.vhdl:	$(TOOLDIR)/mempacker/mempacker $(BINDIR)/asciifont.bi
 $(VHDLSRCDIR)/termmem.vhdl:	$(TOOLDIR)/mempacker/mempacker $(BINDIR)/asciifont.bin $(BINDIR)/matrix_banner.txt
 	$(TOOLDIR)/mempacker/mempacker -n termmem -s 4095 -f $(VHDLSRCDIR)/termmem.vhdl $(BINDIR)/asciifont.bin@000 /dev/zero@500 $(BINDIR)/matrix_banner.txt@A24
 
-$(BINDIR)/osdmap.bin:	$(TOOLDIR)/on_screen_keyboard_gen $(SRCDIR)/keyboard.txt
+$(BINDIR)/osdmap.bin:	$(TOOLDIR)/on_screen_keyboard_gen $(SRCDIR)/keyboard.txt | $(BINDIR)
 	 $(TOOLDIR)/on_screen_keyboard_gen $(SRCDIR)/keyboard.txt > $(BINDIR)/osdmap.bin
 
-$(BINDIR)/asciifont.bin:	$(TOOLDIR)/pngprepare/pngprepare $(ASSETS)/ascii00-7f.png
+$(BINDIR)/asciifont.bin:	$(TOOLDIR)/pngprepare/pngprepare $(ASSETS)/ascii00-7f.png | $(BINDIR)
 	$(TOOLDIR)/pngprepare/pngprepare charrom $(ASSETS)/ascii00-7f.png $(BINDIR)/asciifont.bin
 
-$(BINDIR)/matrixfont.bin:	$(TOOLDIR)/pngprepare/pngprepare $(ASSETS)/matrix.png
+$(BINDIR)/matrixfont.bin:	$(TOOLDIR)/pngprepare/pngprepare $(ASSETS)/matrix.png | $(BINDIR)
 	$(TOOLDIR)/pngprepare/pngprepare charrom $(ASSETS)/matrix.png $(BINDIR)/matrixfont.bin
 
-$(BINDIR)/charrom.bin:	$(TOOLDIR)/pngprepare/pngprepare $(ASSETS)/8x8font.png
+$(BINDIR)/charrom.bin:	$(TOOLDIR)/pngprepare/pngprepare $(ASSETS)/8x8font.png | $(BINDIR)
 	$(TOOLDIR)/pngprepare/pngprepare charrom $(ASSETS)/8x8font.png $(BINDIR)/charrom.bin
 
 # ============================ done moved, Makefile-dep, print-warn, clean-target
@@ -847,8 +874,8 @@ CRAMUTILS=	$(UTILDIR)/mega65_config.prg $(SRCDIR)/mega65-fdisk/m65fdisk.prg $(UT
 $(BINDIR)/COLOURRAM.BIN:	$(TOOLDIR)/utilpacker/utilpacker $(CRAMUTILS)
 	$(TOOLDIR)/utilpacker/utilpacker $(BINDIR)/COLOURRAM.BIN $(CRAMUTILS)
 
-$(TOOLDIR)/utilpacker/utilpacker:	$(TOOLDIR)/utilpacker/utilpacker.c Makefile
-	$(CC) $(COPT) -o $(TOOLDIR)/utilpacker/utilpacker $(TOOLDIR)/utilpacker/utilpacker.c
+$(TOOLDIR)/utilpacker/utilpacker:	$(TOOLDIR)/utilpacker/utilpacker.c $(EXOMIZER_DEPEND) Makefile
+	$(CC) $(COPT) -o $(TOOLDIR)/utilpacker/utilpacker $(TOOLDIR)/utilpacker/utilpacker.c -DEXOMIZER_PREFIX='"$(EXOMIZER_PREFIX)"'
 
 # ============================ done moved, Makefile-dep, print-warn, clean-target
 # script to extract the git-status from the ./.git filesystem, and to embed that string
@@ -857,8 +884,8 @@ $(TOOLDIR)/utilpacker/utilpacker:	$(TOOLDIR)/utilpacker/utilpacker.c Makefile
 # version information is updated.
 # for now we will always update the version info whenever we do a make.
 .PHONY: version.vhdl version.a65
-$(VHDLSRCDIR)/version.vhdl src/monitor/version.a65 src/version.a65 src/version.asm $(BINDIR)/matrix_banner.txt:	.git ./src/version.sh $(ASSETS)/matrix_banner.txt $(TOOLDIR)/format_banner
-	./src/version.sh
+$(VHDLSRCDIR)/version.vhdl $(SRCDIR)/monitor/version.a65 $(SRCDIR)/version.a65 $(SRCDIR)/version.asm $(BINDIR)/matrix_banner.txt:	.git $(SRCDIR)/version.sh $(ASSETS)/matrix_banner.txt $(TOOLDIR)/format_banner
+	./$(SRCDIR)/version.sh
 
 # i think 'charrom' is used to put the pngprepare file into a special mode that
 # generates the charrom.vhdl file that is embedded with the contents of the 8x8font.png file
@@ -867,8 +894,7 @@ $(VHDLSRCDIR)/charrom.vhdl:	$(TOOLDIR)/pngprepare/pngprepare $(ASSETS)/8x8font.p
 	$(TOOLDIR)/pngprepare/pngprepare charrom $(ASSETS)/8x8font.png $(VHDLSRCDIR)/charrom.vhdl
 
 iverilog/driver/iverilog:
-	git submodule init
-	git submodule update
+	git submodule update --init iverilog
 	cd iverilog ; autoconf ; ./configure ; make
 	mkdir -p iverilog/lib/ivl
 	ln -s ../../ivlpp/ivlpp iverilog/lib/ivl/ivlpp
@@ -882,14 +908,12 @@ $(VHDLSRCDIR)/uart_monitor.vhdl.tmp $(VHDLSRCDIR)/uart_monitor.vhdl:	$(VERILOGSR
 	cat $(VHDLSRCDIR)/uart_monitor.vhdl.tmp | awk 'BEGIN { echo=1; } {if ($$1=="--"&&$$2=="Generated"&&$$3=="from"&&$$4=="Verilog") { if ($$6=="UART_TX_CTRL"||$$6=="uart_rx") echo=0; else echo=1; } if (echo) print; }' > $(VHDLSRCDIR)/uart_monitor.vhdl
 
 
-$(SDCARD_DIR)/BANNER.M65:	$(TOOLDIR)/pngprepare/pngprepare assets/mega65_320x64.png
-	mkdir -p $(SDCARD_DIR)
+$(SDCARD_DIR)/BANNER.M65:	$(TOOLDIR)/pngprepare/pngprepare assets/mega65_320x64.png | $(SDCARD_DIR)
 	/usr/$(BINDIR)/convert -colors 128 -depth 8 +dither assets/mega65_320x64.png $(BINDIR)/mega65_320x64_128colour.png
 	$(TOOLDIR)/pngprepare/pngprepare logo $(BINDIR)/mega65_320x64_128colour.png $(SDCARD_DIR)/BANNER.M65
 
 # disk menu program for loading from SD card to $C000 on boot by hyppo
-$(SDCARD_DIR)/C000UTIL.BIN:	$(BINDIR)/diskmenu_c000.bin
-	mkdir -p $(SDCARD_DIR)
+$(SDCARD_DIR)/C000UTIL.BIN:	$(BINDIR)/diskmenu_c000.bin | $(SDCARD_DIR)
 	cp $(BINDIR)/diskmenu_c000.bin $(SDCARD_DIR)/C000UTIL.BIN
 
 # ============================ done moved, Makefile-dep, print-warn, clean-target
@@ -912,10 +936,10 @@ $(TOOLDIR)/ftphelper.c:	$(BINDIR)/ftphelper.bin $(TOOLDIR)/bin2c
 $(TOOLDIR)/mega65_ftp:	$(TOOLDIR)/mega65_ftp.c Makefile $(TOOLDIR)/ftphelper.c
 	$(CC) $(COPT) -o $(TOOLDIR)/mega65_ftp $(TOOLDIR)/mega65_ftp.c $(TOOLDIR)/ftphelper.c -lreadline
 
-$(TOOLDIR)/bitinfo:	$(TOOLDIR)/bitinfo.c Makefile 
+$(TOOLDIR)/bitinfo:	$(TOOLDIR)/bitinfo.c Makefile
 	$(CC) $(COPT) -g -Wall -o $(TOOLDIR)/bitinfo $(TOOLDIR)/bitinfo.c
 
-$(TOOLDIR)/bit2core:	$(TOOLDIR)/bit2core.c Makefile 
+$(TOOLDIR)/bit2core:	$(TOOLDIR)/bit2core.c Makefile
 	$(CC) $(COPT) -g -Wall -o $(TOOLDIR)/bit2core $(TOOLDIR)/bit2core.c
 
 $(TOOLDIR)/bit2mcs:	$(TOOLDIR)/bit2mcs.c Makefile
@@ -940,7 +964,7 @@ vivado/%.xpr: 	vivado/%_gen.tcl | $(VHDLSRCDIR)/*.vhdl $(VHDLSRCDIR)/*.xdc $(VER
 
 preliminaries: $(VERILOGSRCDIR)/monitor_mem.v $(M65VHDL)
 
-$(BINDIR)/%.bit: 	vivado/%.xpr $(VHDLSRCDIR)/*.vhdl $(VHDLSRCDIR)/*.xdc $(VERILOGSRCDIR)/*.v preliminaries
+$(BINDIR)/%.bit: 	vivado/%.xpr $(VHDLSRCDIR)/*.vhdl $(VHDLSRCDIR)/*.xdc $(VERILOGSRCDIR)/*.v preliminaries | $(SDCARD_DIR)
 	echo MOOSE $@ from $<
 #	@rm -f $@
 #	@echo "---------------------------------------------------------"
@@ -954,7 +978,6 @@ $(BINDIR)/%.bit: 	vivado/%.xpr $(VHDLSRCDIR)/*.vhdl $(VHDLSRCDIR)/*.xdc $(VERILO
 #	@echo "Design looks good. Generating bitfile."
 #	@echo "---------------------------------------------------------"
 
-	mkdir -p $(SDCARD_DIR)
 	$(VIVADO) -mode batch -source vivado/$(subst bin/,,$*)_impl.tcl vivado/$(subst bin/,,$*).xpr
 	cp vivado/$(subst bin/,,$*).runs/impl_1/container.bit $@
 	# Make a copy named after the commit and datestamp, for easy going back to previous versions
@@ -963,8 +986,7 @@ $(BINDIR)/%.bit: 	vivado/%.xpr $(VHDLSRCDIR)/*.vhdl $(VHDLSRCDIR)/*.xdc $(VERILO
 	./vivado_timing $(subst bin/,,$*)
 	cp $(subst bin/,,$*).timing.txt $(BINDIR)/$*-`$(TOOLDIR)/gitversion.sh`.timing.txt
 
-$(BINDIR)/%.mcs:	$(BINDIR)/%.bit
-	mkdir -p $(SDCARD_DIR)
+$(BINDIR)/%.mcs:	$(BINDIR)/%.bit | $(SDCARD_DIR)
 	$(VIVADO) -mode batch -source vivado/run_mcs.tcl -tclargs $< $@
 
 $(BINDIR)/ethermon:	$(TOOLDIR)/ethermon.c
@@ -1002,7 +1024,8 @@ clean:
 	rm -f thumbnail.prg work-obj93.cf
 	rm -f textmodetest.prg textmodetest.list etherload_done.bin etherload_stub.bin
 	rm -f $(BINDIR)/videoproxy $(BINDIR)/vncserver
-	rm -rf vivado/{mega65r1,megaphoner1,nexys4,nexys4ddr,nexys4ddr-widget,pixeltest,te0725}.{cache,runs,hw,ip_user_files,srcs,xpr}
+	rm -rf vivado/*.cache vivado/*.runs vivado/*.runs vivado/*.hw vivado/*.ip_user_files vivado/*.srcs vivado/*.xpr
+	rm -f vivado*.{jou,log}
 
 cleangen:
 	rm $(VHDLSRCDIR)/hyppo.vhdl $(VHDLSRCDIR)/charrom.vhdl *.M65

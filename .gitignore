@@ -10,6 +10,7 @@
 bin/*
 
 # files generated using make
+*.prg
 src/KICKUP.M65
 src/*.prg
 src/diskmenu_c000.bin
@@ -20,6 +21,7 @@ src/monitor/gen_dis
 src/tools/ftphelper.c
 
 # ophis
+*.map
 src/*.list
 src/*.map
 src/tests/*.list
@@ -40,7 +42,7 @@ src/vhdl/colourram.vhdl
 src/vhdl/hyppo.vhdl
 src/vhdl/kickstart.vhdl
 src/vhdl/oskmem.vhdl
-src/vhdl/shadowram.vhdl
+src/vhdl/shadowram*.vhdl
 src/vhdl/termmem.vhdl
 src/vhdl/uart_monitor.vhdl
 src/vhdl/uart_monitor.vhdl.tmp

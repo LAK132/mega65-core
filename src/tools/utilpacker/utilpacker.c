@@ -6,6 +6,10 @@
 
 */
 
+#ifndef EXOMIZER_PREFIX
+#define EXOMIZER_PREFIX ""
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -78,7 +82,7 @@ int load_util(char *filename, int ar_offset)
   {
     char cmd[1024];
     unlink("exomized.prg");
-    snprintf(cmd,1024,"exomizer sfx sys -o exomized.prg %s",filename);
+    snprintf(cmd,1024,EXOMIZER_PREFIX "exomizer sfx sys -o exomized.prg %s",filename);
     system(cmd);
 
     f=fopen("exomized.prg","rb");
